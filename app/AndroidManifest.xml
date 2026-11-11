@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.y1.music"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.y1.music" android:sharedUserId="android.uid.system"
     android:versionCode="1" android:versionName="0.1">
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-sdk android:minSdkVersion="17" android:targetSdkVersion="17"/>
     <application android:label="Y1 Music" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name=".MainActivity">
@@ -9,5 +10,6 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name=".SpikeActivity"/>
     </application>
 </manifest>
