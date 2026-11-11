@@ -15,6 +15,7 @@ public class Base extends Activity {
 
     // {name, background, text, accent}
     static final Object[][] THEMES = {
+        {"Classic", 0xFF000000, 0xFFffffff, 0xFFffffff},
         {"Dracula", 0xFF282a36, 0xFFf8f8f2, 0xFFbd93f9},
         {"Nord", 0xFF2e3440, 0xFFd8dee9, 0xFF88c0d0},
         {"Gruvbox", 0xFF282828, 0xFFebdbb2, 0xFFfabd2f},
