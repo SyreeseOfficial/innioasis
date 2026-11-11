@@ -7,7 +7,8 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.widget.Toast;
-import java.io.FileWriter;
+import android.os.Handler;
+import java.io.*;
 import java.util.*;
 
 /** Owns the MediaPlayer and the queue. UI and hardware keys talk to it with action intents. */
@@ -16,6 +17,8 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
     static List<Library.Song> queue = new ArrayList<Library.Song>();
     static int idx;
     static boolean playing, shuffle;
+    static int pendingPos; // restored position, applied by the next load()
+    static final String QFILE = "queue.dat";
 
     MediaPlayer mp;
     AudioManager am;
@@ -33,8 +36,55 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
         if (shuf) { q = new ArrayList<Library.Song>(q); Collections.shuffle(q); i = 0; }
         queue = q;
         idx = i;
+        pendingPos = 0;
+        saveQueue(c);
         send(c, "play");
     }
+
+    // --- resume: queue in files/queue.dat (same line format as library.dat), idx/pos/shuffle in prefs "p" ---
+    static void saveQueue(Context c) {
+        try {
+            Writer w = new BufferedWriter(new OutputStreamWriter(c.openFileOutput(QFILE, 0), "UTF-8"));
+            for (Library.Song s : queue) w.write(s.path + "\t" + s.title + "\t" + s.artist + "\t" + s.album + "\t" + s.track + "\n");
+            w.close();
+        } catch (Exception e) { log("saveQueue " + e); }
+    }
+
+    /** Reload the last queue, paused at the saved position. Returns false if there is nothing to restore. */
+    static boolean restore(Context c) {
+        if (!queue.isEmpty()) return true;
+        android.content.SharedPreferences p = c.getSharedPreferences("p", 0);
+        try {
+            BufferedReader r = new BufferedReader(new InputStreamReader(c.openFileInput(QFILE), "UTF-8"));
+            List<Library.Song> l = new ArrayList<Library.Song>();
+            String line;
+            while ((line = r.readLine()) != null) {
+                String[] f = line.split("\t", -1);
+                if (f.length < 5) continue;
+                Library.Song s = new Library.Song();
+                s.path = f[0]; s.title = f[1]; s.artist = f[2]; s.album = f[3]; s.track = Integer.parseInt(f[4]);
+                l.add(s);
+            }
+            r.close();
+            if (l.isEmpty()) return false;
+            queue = l;
+            idx = Math.min(p.getInt("idx", 0), l.size() - 1);
+            pendingPos = p.getInt("pos", 0);
+            shuffle = p.getBoolean("shuf", false);
+            playing = false;
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    void saveState() {
+        int pos = mp != null ? mp.getCurrentPosition() : pendingPos;
+        getSharedPreferences("p", 0).edit().putInt("idx", idx).putInt("pos", pos).putBoolean("shuf", shuffle).commit();
+    }
+
+    final Handler saver = new Handler();
+    final Runnable saveTick = new Runnable() {
+        public void run() { if (playing) saveState(); saver.postDelayed(this, 5000); } // survives a kill within 5 s
+    };
 
     static Library.Song cur() { return idx >= 0 && idx < queue.size() ? queue.get(idx) : null; }
 
@@ -52,9 +102,12 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
         btn = new ComponentName(this, MediaButtonReceiver.class);
         am.registerMediaButtonEventReceiver(btn);
         registerReceiver(noisy, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
+        saveTick.run();
     }
 
     @Override public void onDestroy() {
+        saveState();
+        saver.removeCallbacks(saveTick);
         unregisterReceiver(noisy);
         am.unregisterMediaButtonEventReceiver(btn);
         am.abandonAudioFocus(this);
@@ -86,12 +139,14 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
             mp.setOnErrorListener(this);
             mp.setDataSource(s.path);
             mp.prepare();
+            if (pendingPos > 0) { mp.seekTo(pendingPos); pendingPos = 0; }
             mp.start();
             playing = true;
             fails = 0;
             Notification n = new Notification.Builder(this).setSmallIcon(android.R.drawable.ic_media_play)
                 .setContentTitle(s.title).setContentText(s.artist).build();
             startForeground(1, n);
+            saveState();
         } catch (Exception e) { fail(e); }
     }
 
@@ -104,7 +159,7 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
     }
 
     void pause() {
-        if (mp != null && playing) { mp.pause(); playing = false; }
+        if (mp != null && playing) { mp.pause(); playing = false; saveState(); }
     }
 
     void resume() {
@@ -115,12 +170,13 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
     }
 
     void next() {
-        if (idx + 1 < queue.size()) { idx++; load(); }
+        if (idx + 1 < queue.size()) { idx++; pendingPos = 0; load(); }
     }
 
     void prev() {
         if (mp != null && mp.getCurrentPosition() > 3000) { mp.seekTo(0); return; }
         if (idx > 0) idx--;
+        pendingPos = 0;
         load();
     }
 

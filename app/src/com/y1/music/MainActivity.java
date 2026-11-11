@@ -15,8 +15,9 @@ import android.widget.Toast;
 import java.util.*;
 
 /** One reusable list screen. mode: home | artists | albums | artist (albums of one artist) | songs. */
-public class MainActivity extends Activity {
+public class MainActivity extends Base {
     static Library LIB;
+    static boolean restoredOnce;
 
     static synchronized Library lib(Context c) {
         if (LIB == null) {
@@ -72,6 +73,10 @@ public class MainActivity extends Activity {
         setContentView(lv);
         if (mode.equals("home")) {
             for (String s : new String[] {"Artists", "Albums", "Shuffle All", "Now Playing", "Settings"}) rows.add(new String[] {s});
+            if (PlayerService.restore(this) && !restoredOnce) { // fresh process: show the last song, paused
+                restoredOnce = true;
+                startActivity(new Intent(this, NowPlayingActivity.class));
+            }
             // warm the library (cache load, or first-time scan) without blocking the menu
             new Thread(new Runnable() { public void run() { lib(MainActivity.this); } }).start();
         } else fill();

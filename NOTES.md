@@ -62,3 +62,10 @@
 - Verified on device with screenshots: cover shows and changes on next; volume 13 -> 10 with 3 ccw clicks; SHUFFLE shown; battery 61%. Many tracks have no embedded art (the card's folders carry cover.jpg instead), hence the fallback.
 - Hand-test: cover change smoothness while skipping fast.
 - phase6 done.
+## Phase 7 results
+- Resume: queue -> files/queue.dat (library.dat line format, written when a queue starts), idx/pos/shuffle -> prefs "p" (written on pause, song start, service stop, and every 5 s while playing). MainActivity restores in a fresh process and opens Now Playing paused; play resumes via seekTo(pos).
+- Verified: played track 3, force-stop at ~39.5 s, relaunch -> Now Playing shows the same song "Paused"; pressing play restarted at 39.57 s (saved position at the last 5 s tick).
+- Screen: Base activity sets window brightness 0 after 15 s idle while playing -> driver clamps to 30/255 (backlight 128 -> 30, verified via /sys/class/leds/lcd-backlight/brightness). Any key restores 128; wheel/center that wake it are swallowed, media keys pass through.
+- DECISION (user): no real screen-off. Wheel/buttons lack WAKE flags in Generic.kl (only center 232 has WAKE_DROPPED), so a sleeping screen would not wake on the wheel (that is also why wheel presses vanished in the first phase-1 pass). Generic.kl left untouched. Power button still sleeps/wakes the screen normally.
+- Reboot test of resume is part of phase 9.
+- phase7 done.

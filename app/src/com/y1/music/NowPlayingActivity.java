@@ -18,7 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /** Cover + title/artist/album + battery/shuffle/volume. Wheel = volume. Polls the service twice a second. */
-public class NowPlayingActivity extends Activity {
+public class NowPlayingActivity extends Base {
     ImageView cover;
     TextView title, artist, album, status;
     AudioManager am;
