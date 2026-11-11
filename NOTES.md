@@ -35,3 +35,7 @@
 - Quirk: logcat sometimes drops the first line(s) of a run; and the device dropped off USB once mid-run (came back after replug).
 - SD card: only ~433 MB total and no music on it (test files only). Real library must be copied before phase 3's 3,312 count test.
 - phase2 done.
+## Phase 3 blocker: SD card filesystem is only 434 MB
+- Partition mmcblk1p1 is 122 GB but the FAT boot sector says 888,320 sectors (434 MB). `df` shows 433M, writes fail with "No space left on device" at ~423 MB used.
+- Contents now: LOST.DIR, 5 wallpaper files, Spike/ (test files), Music/ (partial adb push, ~200 MB, `sync-music.sh`, resumable). Fix = reformat the card as FAT32 (erases all of this).
+- Library.java + MainActivity (phase 3 code) written, not yet tested/committed.
