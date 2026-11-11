@@ -33,8 +33,9 @@ No full custom firmware. Kernel, MTK bootloader, drivers and Bluetooth stack are
 4. Install as the launcher so the Y1 boots into it.
 5. Disable unused system apps to free RAM.
 
-## Open question
-Building needs the Android SDK at `~/Android/Sdk`. The home-folder rules say not to read it. Awaiting the user's call: use only its build tools, or install a separate toolchain.
+## Decisions
+- Android SDK at `~/Android/Sdk` is OK to use for building (user confirmed).
+- Full spec in `PRD.md`.
 
 ## Notes
 - `backups/*.apk` is gitignored (large, third-party binaries). `Generic.kl.orig` is tracked.
