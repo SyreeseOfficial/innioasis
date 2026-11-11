@@ -11,6 +11,28 @@ public class Base extends Activity {
     static final int IDLE_MS = 15000;
     Handler idleH = new Handler();
     boolean dark;
+    static boolean guardOn;
+
+    /** Crash-loop guard: count uncaught exceptions + log the stack. Home resets the count after 10 s of life. */
+    @Override protected void onCreate(android.os.Bundle b) {
+        super.onCreate(b);
+        if (guardOn) return;
+        guardOn = true;
+        final android.content.Context c = getApplicationContext();
+        final Thread.UncaughtExceptionHandler old = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            public void uncaughtException(Thread t, Throwable e) {
+                try {
+                    android.content.SharedPreferences p = c.getSharedPreferences("p", 0);
+                    p.edit().putInt("crashes", p.getInt("crashes", 0) + 1).commit();
+                    java.io.StringWriter w = new java.io.StringWriter();
+                    e.printStackTrace(new java.io.PrintWriter(w));
+                    PlayerService.log("CRASH " + w);
+                } catch (Throwable x) { /* nothing more we can do */ }
+                if (old != null) old.uncaughtException(t, e);
+            }
+        });
+    }
 
     final Runnable goDark = new Runnable() {
         public void run() {

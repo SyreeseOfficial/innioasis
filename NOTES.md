@@ -75,3 +75,18 @@
 - Verified on device: covers toggle persists across relaunch (prefs), rescan -> 1030 songs, brightness values written (150/255 seen), BT settings screen opens and the wheel (LEFT/RIGHT) moves focus (toggle -> SEARCH FOR DEVICES), center toggles; Back returns to our screen; Settings app opens and Back returns.
 - NOT verified (needs hands): pairing a real BT headphone, audio over BT, headphone buttons (risk 4).
 - phase8 done (BT headphone hand-test pending).
+## Phase 9 recovery (written BEFORE changing the launcher)
+- adb root works (adb shell is uid 0 already). Device id 0123456789ABCDEF.
+- Undo launcher: `adb uninstall com.y1.music` (stock com.innioasis.y1 is HOME again). Or `adb shell pm clear com.y1.music`.
+- Our HOME filter has priority 1 (stock = 0), so there is no chooser and no `set default` step; nothing in /system is touched.
+- Start stock player by hand: `adb shell am start -n com.innioasis.y1/.activity.SplashActivity`. Settings: `am start -n com.android.settings/.Settings`.
+- If a disabled package breaks boot: `adb shell pm enable <pkg>` or run disable/enable script `enable.sh`. If adb is gone, `adb wait-for-device` after a reboot (adbd starts early).
+- Crash guard: 2 uncaught crashes in a row (count in prefs "crashes", reset after 10 s of home life) -> home hands over to the stock player; stack goes to /storage/sdcard0/y1-music.log.
+## Phase 9 results
+- Launcher: priority="1" on the HOME filter is ignored (non-/system apps get priority reset to 0), so the HOME chooser appeared; picked "Y1 Music" + Always once (tap). Preferred HOME survives reboot. Undo: `adb uninstall com.y1.music` (or Settings > Apps > clear defaults).
+- Boot: kernel start -> our Home process 8 s, menu/NowPlaying displayed ~9.5 s (target <20 s). Boot lands on Now Playing, paused (resume works after reboot). Stock player's BOOT_COMPLETED receiver does not steal focus.
+- Crash guard verified: prefs crashes=2 -> Home starts stock player (com.innioasis.y1 MainActivity), counter reset to 0, log line "crash guard". HOME press afterwards returns to ours.
+- disable.sh / enable.sh (repo root): 20 packages in 4 batches (live wallpapers, dreams, protips, exchange, calendar, datatransfer, apst, lbs.em, stk, pico TTS, rukeyboard). Rebooted after each batch: always landed on our app, MtkBt (com.mediatek.bluetooth) + mtkbt still running. enable.sh run once: 0 disabled left; disable.sh re-applied (20 disabled now). Never touched: MtkBt, systemui, settings, providers.*, inputmethod.latin, both players.
+- With USB plugged to the PC, UsbStorageActivity (systemui) covers our app on boot until the unshare commands in "Storage layout" are run: PC-only quirk.
+- NOT verified (hands): BT headphone pairing/audio still working after boot (BT daemons are up), power-button cold boot (adb reboot used).
+- phase9 done.

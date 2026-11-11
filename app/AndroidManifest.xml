@@ -12,6 +12,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity-alias android:name=".Home" android:targetActivity=".MainActivity"> <!-- priority 1 beats the stock HOME (0): no chooser, undo = uninstall -->
+            <intent-filter android:priority="1">
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.HOME"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity-alias>
         <activity android:name=".SpikeActivity"/>
         <activity android:name=".NowPlayingActivity"/>
         <service android:name=".PlayerService"/>

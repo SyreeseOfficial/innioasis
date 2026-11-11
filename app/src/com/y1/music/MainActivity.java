@@ -40,6 +40,17 @@ public class MainActivity extends Base {
         Intent i = getIntent();
         mode = i.getStringExtra("m");
         if (mode == null) mode = "home";
+        if (mode.equals("home")) {
+            final android.content.SharedPreferences sp = getSharedPreferences("p", 0);
+            if (sp.getInt("crashes", 0) >= 2) { // 2 crashes in a row: hand over to the stock player, retry next time
+                sp.edit().putInt("crashes", 0).commit();
+                PlayerService.log("crash guard: falling back to stock player");
+                startActivity(new Intent().setClassName("com.innioasis.y1", "com.innioasis.y1.activity.SplashActivity"));
+                finish();
+                return;
+            }
+            idleH.postDelayed(new Runnable() { public void run() { sp.edit().putInt("crashes", 0).commit(); } }, 10000);
+        }
         artist = i.getStringExtra("a");
         album = i.getStringExtra("b");
         lv = new ListView(this);
