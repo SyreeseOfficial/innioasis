@@ -42,12 +42,15 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
     }
 
     // --- resume: queue in files/queue.dat (same line format as library.dat), idx/pos/shuffle in prefs "p" ---
+    static final java.util.concurrent.ExecutorService io = java.util.concurrent.Executors.newSingleThreadExecutor(); // one at a time, in order
+
+    /** Writes off the UI thread (Shuffle All = thousands of lines). The queue list is never modified, only replaced, so it is safe to hand over. */
     static void saveQueue(Context c) {
-        try {
-            Writer w = new BufferedWriter(new OutputStreamWriter(c.openFileOutput(QFILE, 0), "UTF-8"));
-            for (Library.Song s : queue) w.write(s.path + "\t" + s.title + "\t" + s.artist + "\t" + s.album + "\t" + s.track + "\n");
-            w.close();
-        } catch (Exception e) { log("saveQueue " + e); }
+        final List<Library.Song> q = queue;
+        final File f = new File(c.getFilesDir(), QFILE);
+        io.execute(new Runnable() { public void run() {
+            try { Library.writeAtomic(f, q); } catch (Exception e) { log("saveQueue " + e); }
+        } });
     }
 
     /** Reload the last queue, paused at the saved position. Returns false if there is nothing to restore. */
@@ -59,11 +62,8 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
             List<Library.Song> l = new ArrayList<Library.Song>();
             String line;
             while ((line = r.readLine()) != null) {
-                String[] f = line.split("\t", -1);
-                if (f.length < 5) continue;
-                Library.Song s = new Library.Song();
-                s.path = f[0]; s.title = f[1]; s.artist = f[2]; s.album = f[3]; s.track = Integer.parseInt(f[4]);
-                l.add(s);
+                Library.Song s = Library.parse(line);
+                if (s != null) l.add(s);
             }
             r.close();
             if (l.isEmpty()) return false;
@@ -78,7 +78,7 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
 
     void saveState() {
         int pos = mp != null && ready ? mp.getCurrentPosition() : pendingPos;
-        getSharedPreferences("p", 0).edit().putInt("idx", idx).putInt("pos", pos).putBoolean("shuf", shuffle).commit();
+        getSharedPreferences("p", 0).edit().putInt("idx", idx).putInt("pos", pos).putBoolean("shuf", shuffle).apply(); // async: no flash write on the UI thread every 5 s
     }
 
     final Handler saver = new Handler();

@@ -1,13 +1,13 @@
 package com.y1.music;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.AudioManager;
-import android.media.MediaMetadataRetriever;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,14 +17,25 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Cover + title/artist/album + battery/shuffle/volume. Wheel = volume. Polls the service twice a second. */
+/** Cover + title/artist/album + battery/shuffle/volume. Wheel = volume. Polls the service twice a second (cheap: views are
+ *  only touched when something changed, and not at all while the backlight is off). */
 public class NowPlayingActivity extends Base {
     ImageView cover;
     TextView title, artist, album, status;
     AudioManager am;
     Handler h = new Handler();
     Library.Song shown;
-    String coverPath; // path whose cover is loaded / loading (the "last cover" cache is the ImageView itself)
+    volatile String coverPath; // path whose cover is wanted; queued cover jobs for other songs skip themselves
+    static final java.util.concurrent.ExecutorService coverIO = java.util.concurrent.Executors.newSingleThreadExecutor();
+    int bat = -1, maxVol;
+    String lastStatus = "";
+
+    /** Battery level arrives as a broadcast (once now, then only on change) instead of re-registering every tick. */
+    final BroadcastReceiver batRx = new BroadcastReceiver() {
+        public void onReceive(Context c, Intent i) {
+            bat = i.getIntExtra(BatteryManager.EXTRA_LEVEL, 0) * 100 / Math.max(1, i.getIntExtra(BatteryManager.EXTRA_SCALE, 100));
+        }
+    };
 
     TextView tv(int size, int color, int lines) {
         TextView t = new TextView(this);
@@ -39,6 +50,7 @@ public class NowPlayingActivity extends Base {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         am = (AudioManager) getSystemService(AUDIO_SERVICE);
+        maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         LinearLayout root = new LinearLayout(this);
         root.setBackgroundColor(Color.BLACK);
         root.setPadding(12, 12, 12, 12);
@@ -62,13 +74,22 @@ public class NowPlayingActivity extends Base {
 
     final Runnable tick = new Runnable() {
         public void run() {
-            refresh();
+            if (!dark) refresh(); // backlight off: nobody is looking, the first tick after wake catches up
             h.postDelayed(this, 500);
         }
     };
 
-    @Override protected void onResume() { super.onResume(); tick.run(); }
-    @Override protected void onPause() { super.onPause(); h.removeCallbacks(tick); }
+    @Override protected void onResume() {
+        super.onResume();
+        Intent i = registerReceiver(batRx, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)); // returns the sticky level now; changes follow via batRx
+        if (i != null) batRx.onReceive(this, i);
+        tick.run();
+    }
+    @Override protected void onPause() {
+        super.onPause();
+        h.removeCallbacks(tick);
+        unregisterReceiver(batRx);
+    }
 
     void refresh() {
         Library.Song s = PlayerService.cur();
@@ -79,48 +100,20 @@ public class NowPlayingActivity extends Base {
             album.setText(s == null ? "" : s.album);
             loadCover(s);
         }
-        Intent bat = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        int pct = bat == null ? -1 : bat.getIntExtra(BatteryManager.EXTRA_LEVEL, 0) * 100 / Math.max(1, bat.getIntExtra(BatteryManager.EXTRA_SCALE, 100));
-        status.setText((PlayerService.playing ? "" : "Paused\n") + (PlayerService.shuffle ? "SHUFFLE  " : "")
-            + "Bat " + pct + "%\nVol " + am.getStreamVolume(AudioManager.STREAM_MUSIC) + "/" + am.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+        String st = (PlayerService.playing ? "" : "Paused\n") + (PlayerService.shuffle ? "SHUFFLE  " : "")
+            + "Bat " + bat + "%\nVol " + am.getStreamVolume(AudioManager.STREAM_MUSIC) + "/" + maxVol;
+        if (!st.equals(lastStatus)) { lastStatus = st; status.setText(st); }
     }
 
     void loadCover(final Library.Song s) {
         cover.setImageBitmap(null);
         coverPath = s == null ? null : s.path;
         if (s == null || !getSharedPreferences("p", 0).getBoolean("covers", true)) return;
-        new Thread(new Runnable() { public void run() {
-            Bitmap bm = null;
-            try {
-                MediaMetadataRetriever m = new MediaMetadataRetriever();
-                m.setDataSource(s.path);
-                byte[] d = m.getEmbeddedPicture();
-                m.release();
-                if (d == null) { // no embedded art: fall back to cover.jpg / folder.jpg next to the song
-                    for (String n : new String[] {"cover.jpg", "folder.jpg"}) {
-                        java.io.File f = new java.io.File(new java.io.File(s.path).getParentFile(), n);
-                        if (!f.exists()) continue;
-                        d = new byte[(int) f.length()];
-                        java.io.DataInputStream in = new java.io.DataInputStream(new java.io.FileInputStream(f));
-                        in.readFully(d);
-                        in.close();
-                        break;
-                    }
-                }
-                if (d != null) {
-                    BitmapFactory.Options o = new BitmapFactory.Options();
-                    o.inJustDecodeBounds = true;
-                    BitmapFactory.decodeByteArray(d, 0, d.length, o);
-                    int n = 1;
-                    while (o.outWidth / (n * 2) >= 300) n *= 2; // decode small: ~300-600 px
-                    o = new BitmapFactory.Options();
-                    o.inSampleSize = n;
-                    bm = BitmapFactory.decodeByteArray(d, 0, d.length, o);
-                }
-            } catch (Throwable e) { android.util.Log.w("Y1COVER", "no cover " + s.path, e); }
-            final Bitmap fb = bm; android.util.Log.i("Y1COVER", s.path + " -> " + (bm == null ? "null" : bm.getWidth() + "x" + bm.getHeight()));
-            runOnUiThread(new Runnable() { public void run() { if (s.path.equals(coverPath)) cover.setImageBitmap(fb); } });
-        } }).start();
+        coverIO.execute(new Runnable() { public void run() {
+            if (!s.path.equals(coverPath)) return; // user already skipped on: don't decode art nobody will see
+            final Bitmap bm = Covers.get(NowPlayingActivity.this, s);
+            runOnUiThread(new Runnable() { public void run() { if (s.path.equals(coverPath)) cover.setImageBitmap(bm); } });
+        } });
     }
 
     @Override public boolean onKeyDown(int k, KeyEvent e) {

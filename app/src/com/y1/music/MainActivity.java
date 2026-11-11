@@ -16,7 +16,7 @@ import java.util.*;
 
 /** One reusable list screen. mode: home | artists | albums | artist (albums of one artist) | songs. */
 public class MainActivity extends Base {
-    static Library LIB;
+    static volatile Library LIB; // null until the first load/scan finishes
     static boolean restoredOnce;
 
     static synchronized Library lib(Context c) {
@@ -32,6 +32,7 @@ public class MainActivity extends Base {
     List<String[]> rows = new ArrayList<String[]>(); // {label, extra...}
     List<Library.Song> songList;
     int sel = 0;
+    boolean inert; // rows are a placeholder ("Loading..." / "Empty"): Enter does nothing
     ListView lv;
     BaseAdapter ad;
 
@@ -90,24 +91,47 @@ public class MainActivity extends Base {
             }
             // warm the library (cache load, or first-time scan) without blocking the menu
             new Thread(new Runnable() { public void run() { lib(MainActivity.this); } }).start();
-        } else fill();
+        } else if (mode.equals("settings")) settingsRows();
+        else load();
         ad.notifyDataSetChanged();
     }
 
-    void fill() {
-        Library l = lib(this);
-        if (mode.equals("settings")) { settingsRows(); return; }
-        if (mode.equals("artist") || mode.equals("songs")) rows.add(new String[] {"Shuffle"}); // top row
-        if (mode.equals("artists")) for (String a : l.artists()) rows.add(new String[] {a});
-        else if (mode.equals("albums")) for (String[] a : l.allAlbums()) rows.add(new String[] {a[1] + " - " + a[0], a[0], a[1]});
-        else if (mode.equals("artist")) for (String a : l.albums(artist)) rows.add(new String[] {a, artist, a});
-        else for (Library.Song s : songList = l.songs(artist, album))
-            rows.add(new String[] {(s.track > 0 ? String.format("%02d  ", s.track) : "") + s.title, s.path});
+    /** Rows are built on a worker thread: the library may still be loading (or scanning, minutes on first run). */
+    void load() {
+        inert = true;
+        rows.add(new String[] {"Loading..."});
+        new Thread(new Runnable() { public void run() {
+            final List<String[]> r = new ArrayList<String[]>();
+            final List<Library.Song> sl = build(lib(MainActivity.this), r);
+            runOnUiThread(new Runnable() { public void run() {
+                if (isFinishing()) return;
+                inert = r.isEmpty();
+                if (inert) r.add(new String[] {"Empty"});
+                rows = r;
+                songList = sl;
+                sel = 0;
+                ad.notifyDataSetChanged();
+            } });
+        } }).start();
+    }
+
+    /** Fills r for this screen. Returns the song list for a songs screen, else null. */
+    List<Library.Song> build(Library l, List<String[]> r) {
+        if (mode.equals("artist") || mode.equals("songs")) r.add(new String[] {"Shuffle"}); // top row
+        if (mode.equals("artists")) for (String a : l.artists()) r.add(new String[] {a});
+        else if (mode.equals("albums")) for (String[] a : l.allAlbums()) r.add(new String[] {a[1] + " - " + a[0], a[0], a[1]});
+        else if (mode.equals("artist")) for (String a : l.albums(artist)) r.add(new String[] {a, artist, a});
+        else {
+            List<Library.Song> sl = l.songs(artist, album);
+            for (Library.Song s : sl) r.add(new String[] {(s.track > 0 ? String.format("%02d  ", s.track) : "") + s.title, s.path});
+            return sl;
+        }
+        return null;
     }
 
     // ---- settings ----
     static final int[] BRIGHT = {30, 60, 100, 150, 200, 255};
-    String scanMsg = "";
+    volatile String scanMsg = "";
 
     int brightness() {
         try { return android.provider.Settings.System.getInt(getContentResolver(), android.provider.Settings.System.SCREEN_BRIGHTNESS); }
@@ -132,7 +156,7 @@ public class MainActivity extends Base {
             scanMsg = " (scanning...)";
             new Thread(new Runnable() { public void run() {
                 String m;
-                try { m = " (" + lib(MainActivity.this).rescan() + " songs)"; } catch (Exception e) { m = " (failed)"; }
+                try { m = " (" + lib(MainActivity.this).rescan() + " songs)"; Covers.clear(MainActivity.this); } catch (Exception e) { m = " (failed)"; }
                 scanMsg = m;
                 runOnUiThread(new Runnable() { public void run() { settingsRows(); ad.notifyDataSetChanged(); } });
             } }).start();
@@ -153,13 +177,25 @@ public class MainActivity extends Base {
         startActivity(new Intent(this, MainActivity.class).putExtra("m", m).putExtra("a", a).putExtra("b", b));
     }
 
+    /** The library may still be loading, so fetch it off the UI thread. */
+    void shuffleAll() {
+        if (LIB == null) Toast.makeText(this, "Loading library...", Toast.LENGTH_SHORT).show();
+        new Thread(new Runnable() { public void run() {
+            final List<Library.Song> all = lib(MainActivity.this).songs(null, null);
+            runOnUiThread(new Runnable() { public void run() {
+                PlayerService.play(MainActivity.this, all, 0, true);
+                startActivity(new Intent(MainActivity.this, NowPlayingActivity.class));
+            } });
+        } }).start();
+    }
+
     void select() {
-        if (rows.isEmpty()) return;
+        if (inert || rows.isEmpty()) return;
         String[] r = rows.get(sel);
         if (mode.equals("home")) {
             if (sel == 0) go("artists", null, null);
             else if (sel == 1) go("albums", null, null);
-            else if (sel == 2) { PlayerService.play(this, lib(this).songs(null, null), 0, true); startActivity(new Intent(this, NowPlayingActivity.class)); }
+            else if (sel == 2) shuffleAll();
             else if (sel == 3) startActivity(new Intent(this, NowPlayingActivity.class));
             else go("settings", null, null);
         } else if (mode.equals("settings")) settingsAction();
