@@ -56,3 +56,9 @@
 - Verified on device: song starts in 40-110 ms; toggle/next/prev via adb keyevents; prev restarts only if >3 s in; auto-advance across 3 synthetic 3 s tracks into the 4th; bad files (missing, non-audio) -> toast "can't play X", line in /storage/sdcard0/y1-music.log, skip to next; playback continues with screen off (wake locks held).
 - NOT verifiable via adb (hand-test): hardware media keys with the screen OFF (injected keyevents are dropped while asleep), unplugging headphones pauses, actually listening for stutter, hi-res (>48k) skip.
 - phase5 done (hand-tests pending).
+## Phase 6 results
+- NowPlayingActivity: cover (240 px box, decoded at 1/2^n so >=300 px, off UI thread; embedded art first, else cover.jpg/folder.jpg in the song's folder), title/artist/album, Paused / SHUFFLE flags, battery %, volume n/max (device max is 13). Wheel: clockwise = louder. Polls PlayerService twice a second.
+- Shuffle: PlayerService.play(..., shuffle=true) queues a shuffled copy of the list (each song once). Home "Shuffle All"; "Shuffle" first row in artist (albums) and album (songs) lists. Starting a song / shuffle opens Now Playing; Home "Now Playing" row opens it.
+- Verified on device with screenshots: cover shows and changes on next; volume 13 -> 10 with 3 ccw clicks; SHUFFLE shown; battery 61%. Many tracks have no embedded art (the card's folders carry cover.jpg instead), hence the fallback.
+- Hand-test: cover change smoothness while skipping fast.
+- phase6 done.

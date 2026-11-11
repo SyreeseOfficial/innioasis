@@ -15,7 +15,7 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
         MediaPlayer.OnErrorListener, AudioManager.OnAudioFocusChangeListener {
     static List<Library.Song> queue = new ArrayList<Library.Song>();
     static int idx;
-    static boolean playing;
+    static boolean playing, shuffle;
 
     MediaPlayer mp;
     AudioManager am;
@@ -27,7 +27,10 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
         c.startService(new Intent(c, PlayerService.class).setAction(action));
     }
 
-    static void play(Context c, List<Library.Song> q, int i) {
+    /** Plays q in order from i, or a shuffled copy (each song once) when shuffle is true. */
+    static void play(Context c, List<Library.Song> q, int i, boolean shuf) {
+        shuffle = shuf;
+        if (shuf) { q = new ArrayList<Library.Song>(q); Collections.shuffle(q); i = 0; }
         queue = q;
         idx = i;
         send(c, "play");

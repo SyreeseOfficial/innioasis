@@ -129,7 +129,7 @@ public class Library {
 
     public List<Song> songs(String artist, String album) {
         List<Song> l = new ArrayList<Song>();
-        for (Song s : songs) if (s.album.equals(album) && (artist == null || s.artist.equals(artist))) l.add(s);
+        for (Song s : songs) if ((album == null || s.album.equals(album)) && (artist == null || s.artist.equals(artist))) l.add(s);
         return l;
     }
 }

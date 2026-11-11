@@ -80,6 +80,7 @@ public class MainActivity extends Activity {
 
     void fill() {
         Library l = lib(this);
+        if (mode.equals("artist") || mode.equals("songs")) rows.add(new String[] {"Shuffle"}); // top row
         if (mode.equals("artists")) for (String a : l.artists()) rows.add(new String[] {a});
         else if (mode.equals("albums")) for (String[] a : l.allAlbums()) rows.add(new String[] {a[1] + " - " + a[0], a[0], a[1]});
         else if (mode.equals("artist")) for (String a : l.albums(artist)) rows.add(new String[] {a, artist, a});
@@ -97,10 +98,19 @@ public class MainActivity extends Activity {
         if (mode.equals("home")) {
             if (sel == 0) go("artists", null, null);
             else if (sel == 1) go("albums", null, null);
+            else if (sel == 2) { PlayerService.play(this, lib(this).songs(null, null), 0, true); startActivity(new Intent(this, NowPlayingActivity.class)); }
+            else if (sel == 3) startActivity(new Intent(this, NowPlayingActivity.class));
             else Toast.makeText(this, r[0] + ": later", Toast.LENGTH_SHORT).show();
         } else if (mode.equals("artists")) go("artist", r[0], null);
+        else if (sel == 0 && (mode.equals("artist") || mode.equals("songs"))) { // Shuffle row of an artist / album list
+            PlayerService.play(this, lib(this).songs(artist, album), 0, true);
+            startActivity(new Intent(this, NowPlayingActivity.class));
+        }
         else if (mode.equals("albums") || mode.equals("artist")) go("songs", r[1], r[2]);
-        else PlayerService.play(this, songList, sel); // queue = the whole list, starting at the selection
+        else { // queue = the whole list, starting at the selection (row 0 is the Shuffle row)
+            PlayerService.play(this, songList, sel - 1, false);
+            startActivity(new Intent(this, NowPlayingActivity.class));
+        }
     }
 
     void move(int d) {
