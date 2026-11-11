@@ -13,7 +13,7 @@ import java.util.*;
 
 /** Owns the MediaPlayer and the queue. UI and hardware keys talk to it with action intents. */
 public class PlayerService extends Service implements MediaPlayer.OnCompletionListener,
-        MediaPlayer.OnErrorListener, AudioManager.OnAudioFocusChangeListener {
+        MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener, AudioManager.OnAudioFocusChangeListener {
     static List<Library.Song> queue = new ArrayList<Library.Song>();
     static int idx;
     static boolean playing, shuffle;
@@ -24,7 +24,7 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
     AudioManager am;
     ComponentName btn;
     int fails;
-    boolean lostFocus;
+    boolean lostFocus, ready; // ready = prepared, so position/pause/start are legal
 
     static void send(Context c, String action) {
         c.startService(new Intent(c, PlayerService.class).setAction(action));
@@ -77,7 +77,7 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
     }
 
     void saveState() {
-        int pos = mp != null ? mp.getCurrentPosition() : pendingPos;
+        int pos = mp != null && ready ? mp.getCurrentPosition() : pendingPos;
         getSharedPreferences("p", 0).edit().putInt("idx", idx).putInt("pos", pos).putBoolean("shuf", shuffle).commit();
     }
 
@@ -131,23 +131,30 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
         if (s == null) return;
         if (mp != null) mp.release();
         mp = null;
+        ready = false;
         try {
             am.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
             mp = new MediaPlayer();
             mp.setWakeMode(this, android.os.PowerManager.PARTIAL_WAKE_LOCK); // music survives screen off
             mp.setOnCompletionListener(this);
             mp.setOnErrorListener(this);
+            mp.setOnPreparedListener(this);
             mp.setDataSource(s.path);
-            mp.prepare();
-            if (pendingPos > 0) { mp.seekTo(pendingPos); pendingPos = 0; }
-            mp.start();
+            mp.prepareAsync(); // main thread stays free for the wheel
             playing = true;
-            fails = 0;
             Notification n = new Notification.Builder(this).setSmallIcon(android.R.drawable.ic_media_play)
                 .setContentTitle(s.title).setContentText(s.artist).build();
             startForeground(1, n);
             saveState();
         } catch (Exception e) { fail(e); }
+    }
+
+    public void onPrepared(MediaPlayer m) {
+        if (m != mp) return;
+        ready = true;
+        fails = 0;
+        if (pendingPos > 0) { m.seekTo(pendingPos); pendingPos = 0; }
+        if (playing) m.start(); // user may have paused while loading
     }
 
     void fail(Exception e) {
@@ -159,14 +166,14 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
     }
 
     void pause() {
-        if (mp != null && playing) { mp.pause(); playing = false; saveState(); }
+        if (mp != null && playing) { if (ready) mp.pause(); playing = false; saveState(); }
     }
 
     void resume() {
         if (mp == null) { load(); return; }
         am.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-        mp.start();
         playing = true;
+        if (ready) mp.start();
     }
 
     void next() {
@@ -174,7 +181,7 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
     }
 
     void prev() {
-        if (mp != null && mp.getCurrentPosition() > 3000) { mp.seekTo(0); return; }
+        if (mp != null && ready && mp.getCurrentPosition() > 3000) { mp.seekTo(0); return; }
         if (idx > 0) idx--;
         pendingPos = 0;
         load();

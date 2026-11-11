@@ -9,6 +9,7 @@ public class Library {
     public static class Song {
         public String path, title, artist, album;
         public int track;
+        public long mtime; // file date; lets rescan skip unchanged files
     }
 
     public static final String ROOT = "/storage/sdcard0/Music";
@@ -38,6 +39,7 @@ public class Library {
                 if (p.length < 5) continue;
                 Song g = new Song();
                 g.path = p[0]; g.title = p[1]; g.artist = p[2]; g.album = p[3]; g.track = Integer.parseInt(p[4]);
+                if (p.length > 5) try { g.mtime = Long.parseLong(p[5]); } catch (Exception e) {}
                 l.add(g);
             }
             r.close();
@@ -50,11 +52,16 @@ public class Library {
     public int rescan() throws IOException {
         List<File> files = new ArrayList<File>();
         walk(new File(ROOT), files);
+        Map<String, Song> old = new HashMap<String, Song>();
+        for (Song o : songs) old.put(o.path, o);
         List<Song> l = new ArrayList<Song>();
         MediaMetadataRetriever m = new MediaMetadataRetriever();
         for (File f : files) {
+            Song o = old.get(f.getPath());
+            if (o != null && o.mtime != 0 && o.mtime == f.lastModified()) { l.add(o); continue; } // unchanged: keep cached tags
             Song s = new Song();
             s.path = f.getPath();
+            s.mtime = f.lastModified();
             String title = null, artist = null, album = null, tr = null;
             try {
                 m.setDataSource(s.path);
@@ -75,7 +82,7 @@ public class Library {
         Collections.sort(l, ORDER);
         songs = l;
         Writer w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cache), "UTF-8"));
-        for (Song s : l) w.write(s.path + "\t" + s.title + "\t" + s.artist + "\t" + s.album + "\t" + s.track + "\n");
+        for (Song s : l) w.write(s.path + "\t" + s.title + "\t" + s.artist + "\t" + s.album + "\t" + s.track + "\t" + s.mtime + "\n");
         w.close();
         return l.size();
     }
