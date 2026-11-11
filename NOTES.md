@@ -35,7 +35,12 @@
 - Quirk: logcat sometimes drops the first line(s) of a run; and the device dropped off USB once mid-run (came back after replug).
 - SD card: only ~433 MB total and no music on it (test files only). Real library must be copied before phase 3's 3,312 count test.
 - phase2 done.
-## Phase 3 blocker: SD card filesystem is only 434 MB
-- Partition mmcblk1p1 is 122 GB but the FAT boot sector says 888,320 sectors (434 MB). `df` shows 433M, writes fail with "No space left on device" at ~423 MB used.
-- Contents now: LOST.DIR, 5 wallpaper files, Spike/ (test files), Music/ (partial adb push, ~200 MB, `sync-music.sh`, resumable). Fix = reformat the card as FAT32 (erases all of this).
-- Library.java + MainActivity (phase 3 code) written, not yet tested/committed.
+## Storage layout (corrected, phase 3)
+- /storage/sdcard0 = the REAL 128 GB SD card (/dev/block/mmcblk1p1, 116G FAT32, ~27G used). Music at /storage/sdcard0/Music (32 artist folders, 1030 flac + 40 jpg so far; user is still copying the rest). Also has .rockbox, Android, backup... Never format/delete here.
+- /storage/sdcard1 = INTERNAL flash partition (mmcblk0p7, 434 MB). Earlier I wrongly took it for the SD card, so the spike files in /storage/sdcard1/Spike are gone and I reformatted it with vold/newfs_msdos (wallpapers, LOST.DIR and my test files lost; approved by user thinking it was the SD card). Nothing of the user's music was there.
+- GOTCHA: with USB plugged into the PC, sys.usb.config = mass_storage,adb and vold SHARES (unmounts) the card from Android. Before testing run: `adb shell setprop sys.usb.config adb; adb shell vdc volume unshare /storage/sdcard0 ums; adb shell vdc volume unshare /storage/sdcard1 ums; adb shell vdc volume mount /storage/sdcard0`. Resets on reboot/replug. The app can't read the card while shared.
+## Phase 3 results
+- Library.java: own scan (no MediaStore) with MediaMetadataRetriever; album-artist preferred (collabs stay together); cache = files/library.dat (tab lines, sorted). Stale cache must be deleted on path changes (Rescan comes in phase 8).
+- Test: 1030 songs on card (library still being copied; 3,312 not testable yet). Scan 16 s (24 s with plain artist tag) -> est. ~50 s for 3,312. Cache load 130 ms for 1030 -> est. <0.5 s for 3,312. 38 artists / 76 albums for 32 folders (collab tags). 33 rows fall to Unknown Artist/Album. Unicode titles fine.
+- TODO phase 10: re-run on the full 3,312 once copied.
+- phase3 done.

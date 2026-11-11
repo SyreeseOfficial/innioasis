@@ -11,7 +11,7 @@ public class Library {
         public int track;
     }
 
-    public static final String ROOT = "/storage/sdcard1/Music";
+    public static final String ROOT = "/storage/sdcard0/Music";
     public List<Song> songs = new ArrayList<Song>();
     final File cache;
 
@@ -59,7 +59,8 @@ public class Library {
             try {
                 m.setDataSource(s.path);
                 title = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                artist = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                artist = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST); // album artist keeps "feat." tracks together
+                if (artist == null || artist.trim().length() == 0) artist = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
                 album = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
                 tr = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER);
             } catch (Exception e) { /* untagged or unreadable: fall through to defaults */ }
