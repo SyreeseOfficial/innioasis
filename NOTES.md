@@ -69,3 +69,9 @@
 - DECISION (user): no real screen-off. Wheel/buttons lack WAKE flags in Generic.kl (only center 232 has WAKE_DROPPED), so a sleeping screen would not wake on the wheel (that is also why wheel presses vanished in the first phase-1 pass). Generic.kl left untouched. Power button still sleeps/wakes the screen normally.
 - Reboot test of resume is part of phase 9.
 - phase7 done.
+## Phase 8 results
+- Settings (MainActivity mode "settings", Home row 5): Bluetooth (Settings.ACTION_BLUETOOTH_SETTINGS), Covers On/Off (prefs "covers"), Rescan library (thread, shows "(N songs)"), Brightness (ENTER cycles 12/24/39/59/78/100%, writes system setting), Launch Android.
+- "Launch Android" starts com.android.settings: there is no separate stock launcher; the HOME activity is the Y1 player itself (com.innioasis.y1 SplashActivity). IMPORTANT for phase 9: once we are HOME, escape = Settings app, and the stock player can still be started with `am start -n com.innioasis.y1/.activity.SplashActivity`.
+- Verified on device: covers toggle persists across relaunch (prefs), rescan -> 1030 songs, brightness values written (150/255 seen), BT settings screen opens and the wheel (LEFT/RIGHT) moves focus (toggle -> SEARCH FOR DEVICES), center toggles; Back returns to our screen; Settings app opens and Back returns.
+- NOT verified (needs hands): pairing a real BT headphone, audio over BT, headphone buttons (risk 4).
+- phase8 done (BT headphone hand-test pending).

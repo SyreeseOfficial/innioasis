@@ -85,12 +85,57 @@ public class MainActivity extends Base {
 
     void fill() {
         Library l = lib(this);
+        if (mode.equals("settings")) { settingsRows(); return; }
         if (mode.equals("artist") || mode.equals("songs")) rows.add(new String[] {"Shuffle"}); // top row
         if (mode.equals("artists")) for (String a : l.artists()) rows.add(new String[] {a});
         else if (mode.equals("albums")) for (String[] a : l.allAlbums()) rows.add(new String[] {a[1] + " - " + a[0], a[0], a[1]});
         else if (mode.equals("artist")) for (String a : l.albums(artist)) rows.add(new String[] {a, artist, a});
         else for (Library.Song s : songList = l.songs(artist, album))
             rows.add(new String[] {(s.track > 0 ? String.format("%02d  ", s.track) : "") + s.title, s.path});
+    }
+
+    // ---- settings ----
+    static final int[] BRIGHT = {30, 60, 100, 150, 200, 255};
+    String scanMsg = "";
+
+    int brightness() {
+        try { return android.provider.Settings.System.getInt(getContentResolver(), android.provider.Settings.System.SCREEN_BRIGHTNESS); }
+        catch (Exception e) { return 128; }
+    }
+
+    void settingsRows() {
+        rows.clear();
+        rows.add(new String[] {"Bluetooth"});
+        rows.add(new String[] {"Covers: " + (getSharedPreferences("p", 0).getBoolean("covers", true) ? "On" : "Off")});
+        rows.add(new String[] {"Rescan library" + scanMsg});
+        rows.add(new String[] {"Brightness: " + brightness() * 100 / 255 + "%"});
+        rows.add(new String[] {"Launch Android"});
+    }
+
+    void settingsAction() {
+        if (sel == 0) startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));
+        else if (sel == 1) {
+            android.content.SharedPreferences p = getSharedPreferences("p", 0);
+            p.edit().putBoolean("covers", !p.getBoolean("covers", true)).commit();
+        } else if (sel == 2) {
+            scanMsg = " (scanning...)";
+            new Thread(new Runnable() { public void run() {
+                String m;
+                try { m = " (" + lib(MainActivity.this).rescan() + " songs)"; } catch (Exception e) { m = " (failed)"; }
+                scanMsg = m;
+                runOnUiThread(new Runnable() { public void run() { settingsRows(); ad.notifyDataSetChanged(); } });
+            } }).start();
+        } else if (sel == 3) {
+            int b = brightness(), n = BRIGHT[0];
+            for (int v : BRIGHT) if (v > b) { n = v; break; } // next step up, wrapping to the lowest
+            android.provider.Settings.System.putInt(getContentResolver(), android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE, 0);
+            android.provider.Settings.System.putInt(getContentResolver(), android.provider.Settings.System.SCREEN_BRIGHTNESS, n);
+            setBrightness(-1f); // re-apply the system value now
+        } else if (sel == 4) { // the stock "home" is the Y1 player, so the plain Android UI is Settings
+            startActivity(new Intent().setClassName("com.android.settings", "com.android.settings.Settings").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        }
+        settingsRows();
+        ad.notifyDataSetChanged();
     }
 
     void go(String m, String a, String b) {
@@ -105,8 +150,9 @@ public class MainActivity extends Base {
             else if (sel == 1) go("albums", null, null);
             else if (sel == 2) { PlayerService.play(this, lib(this).songs(null, null), 0, true); startActivity(new Intent(this, NowPlayingActivity.class)); }
             else if (sel == 3) startActivity(new Intent(this, NowPlayingActivity.class));
-            else Toast.makeText(this, r[0] + ": later", Toast.LENGTH_SHORT).show();
-        } else if (mode.equals("artists")) go("artist", r[0], null);
+            else go("settings", null, null);
+        } else if (mode.equals("settings")) settingsAction();
+        else if (mode.equals("artists")) go("artist", r[0], null);
         else if (sel == 0 && (mode.equals("artist") || mode.equals("songs"))) { // Shuffle row of an artist / album list
             PlayerService.play(this, lib(this).songs(artist, album), 0, true);
             startActivity(new Intent(this, NowPlayingActivity.class));
