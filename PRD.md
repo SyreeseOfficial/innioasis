@@ -17,7 +17,7 @@ One Android app (API 17, Android 4.2.2) set as the launcher. Plain `MediaPlayer`
 
 ## Controls
 - Wheel (scroll) and center button (select). Touch is ignored.
-- Physical keys: play/pause, next, previous, back. Exact keys are found over `adb getevent` and tabled here once known.
+- Physical keys (verified): wheel clockwise = DPAD_RIGHT (108), counter-clockwise = DPAD_LEFT (103), center = ENTER (232), play/pause = MEDIA_PLAY_PAUSE, next = MEDIA_NEXT, previous = MEDIA_PREVIOUS, back = BACK. Full table in NOTES.md.
 - Wired and Bluetooth headphone media keys: wired is in v1. Bluetooth is in only if it works with the MtkBt stack, otherwise dropped.
 
 ## Screens
