@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
 
     String mode, artist, album;
     List<String[]> rows = new ArrayList<String[]>(); // {label, extra...}
+    List<Library.Song> songList;
     int sel = 0;
     ListView lv;
     BaseAdapter ad;
@@ -82,7 +83,7 @@ public class MainActivity extends Activity {
         if (mode.equals("artists")) for (String a : l.artists()) rows.add(new String[] {a});
         else if (mode.equals("albums")) for (String[] a : l.allAlbums()) rows.add(new String[] {a[1] + " - " + a[0], a[0], a[1]});
         else if (mode.equals("artist")) for (String a : l.albums(artist)) rows.add(new String[] {a, artist, a});
-        else for (Library.Song s : l.songs(artist, album))
+        else for (Library.Song s : songList = l.songs(artist, album))
             rows.add(new String[] {(s.track > 0 ? String.format("%02d  ", s.track) : "") + s.title, s.path});
     }
 
@@ -99,7 +100,7 @@ public class MainActivity extends Activity {
             else Toast.makeText(this, r[0] + ": later", Toast.LENGTH_SHORT).show();
         } else if (mode.equals("artists")) go("artist", r[0], null);
         else if (mode.equals("albums") || mode.equals("artist")) go("songs", r[1], r[2]);
-        else Toast.makeText(this, "play: " + r[0], Toast.LENGTH_SHORT).show(); // phase 5
+        else PlayerService.play(this, songList, sel); // queue = the whole list, starting at the selection
     }
 
     void move(int d) {
@@ -115,6 +116,8 @@ public class MainActivity extends Activity {
         if (k == KeyEvent.KEYCODE_DPAD_RIGHT || k == KeyEvent.KEYCODE_DPAD_DOWN) { move(1); return true; }
         if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_UP) { move(-1); return true; }
         if (k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_CENTER) { select(); return true; }
+        String a = MediaButtonReceiver.actionFor(k);
+        if (a != null) { PlayerService.send(this, a); return true; }
         return super.onKeyDown(k, e);
     }
 }

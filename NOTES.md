@@ -51,3 +51,8 @@
 - Test notes: the "<5 actions" target holds for menu depth (Home -> list -> songs = 3 enters) but long lists need many wheel clicks (no letter jump by PRD). Hand-test the feel of the 38-artist list.
 - Dev tip: `adb shell svc power stayon true` keeps the screen on while plugged; `input keyevent 26` toggles power (check dumpsys power | grep mWakefulness first).
 - phase4 done.
+## Phase 5 results
+- PlayerService (foreground, static queue/idx/playing, action intents play/toggle/next/prev), MediaButtonReceiver (registerMediaButtonEventReceiver), noisy-receiver pause, audio focus (loss -> pause, gain -> resume), MediaPlayer.setWakeMode PARTIAL. Queue = the whole list shown, starting at the selected song.
+- Verified on device: song starts in 40-110 ms; toggle/next/prev via adb keyevents; prev restarts only if >3 s in; auto-advance across 3 synthetic 3 s tracks into the 4th; bad files (missing, non-audio) -> toast "can't play X", line in /storage/sdcard0/y1-music.log, skip to next; playback continues with screen off (wake locks held).
+- NOT verifiable via adb (hand-test): hardware media keys with the screen OFF (injected keyevents are dropped while asleep), unplugging headphones pauses, actually listening for stutter, hi-res (>48k) skip.
+- phase5 done (hand-tests pending).
