@@ -55,7 +55,7 @@ public class MainActivity extends Base {
         artist = i.getStringExtra("a");
         album = i.getStringExtra("b");
         lv = new ListView(this);
-        lv.setBackgroundColor(Color.BLACK);
+        lv.setBackgroundColor(bg());
         lv.setDivider(null);
         lv.setFocusable(false);
         lv.setOnTouchListener(new View.OnTouchListener() { // touch ignored
@@ -76,8 +76,8 @@ public class MainActivity extends Base {
                 }
                 boolean on = p == sel;
                 t.setText(rows.get(p)[0]);
-                t.setTextColor(on ? Color.BLACK : Color.WHITE);
-                t.setBackgroundColor(on ? Color.WHITE : Color.BLACK);
+                t.setTextColor(on ? bg() : fg());
+                t.setBackgroundColor(on ? accent() : bg());
                 return t;
             }
         };
@@ -145,6 +145,8 @@ public class MainActivity extends Base {
         rows.add(new String[] {"Rescan library" + scanMsg});
         rows.add(new String[] {"Brightness: " + brightness() * 100 / 255 + "%"});
         rows.add(new String[] {"Launch Android"});
+        rows.add(new String[] {"Theme: " + THEMES[themeIdx()][0]});
+        rows.add(new String[] {"Made by Syreese"}); // sel == 6 has no action
     }
 
     void settingsAction() {
@@ -168,8 +170,17 @@ public class MainActivity extends Base {
             setBrightness(-1f); // re-apply the system value now
         } else if (sel == 4) { // the stock "home" is the Y1 player, so the plain Android UI is Settings
             startActivity(new Intent().setClassName("com.android.settings", "com.android.settings.Settings").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } else if (sel == 5) {
+            getSharedPreferences("p", 0).edit().putInt("theme", (themeIdx() + 1) % THEMES.length).commit();
+            onTheme();
         }
         settingsRows();
+        ad.notifyDataSetChanged();
+    }
+
+    @Override void onTheme() {
+        if (lv == null) return;
+        lv.setBackgroundColor(bg());
         ad.notifyDataSetChanged();
     }
 

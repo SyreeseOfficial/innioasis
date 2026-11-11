@@ -37,6 +37,7 @@ public class NowPlayingActivity extends Base {
         }
     };
 
+    LinearLayout rootView;
     TextView tv(int size, int color, int lines) {
         TextView t = new TextView(this);
         t.setTextSize(size);
@@ -52,7 +53,7 @@ public class NowPlayingActivity extends Base {
         am = (AudioManager) getSystemService(AUDIO_SERVICE);
         maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         LinearLayout root = new LinearLayout(this);
-        root.setBackgroundColor(Color.BLACK);
+        rootView = root;
         root.setPadding(12, 12, 12, 12);
         cover = new ImageView(this);
         cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -60,16 +61,23 @@ public class NowPlayingActivity extends Base {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setPadding(16, 0, 0, 0);
-        title = tv(22, Color.WHITE, 4);
-        artist = tv(18, Color.WHITE, 2);
-        album = tv(16, Color.LTGRAY, 2);
-        status = tv(16, Color.LTGRAY, 3);
+        title = tv(22, 0, 4);
+        artist = tv(18, 0, 2);
+        album = tv(16, 0, 2);
+        status = tv(16, 0, 3);
         col.addView(title); col.addView(artist); col.addView(album);
         LinearLayout.LayoutParams fill = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
         root.addView(col, fill);
         col.addView(new android.view.View(this), new LinearLayout.LayoutParams(1, 0, 1)); // spacer pushes status down
         col.addView(status);
         setContentView(root);
+    }
+
+    @Override void onTheme() {
+        if (rootView == null) return;
+        rootView.setBackgroundColor(bg());
+        title.setTextColor(fg()); artist.setTextColor(fg());
+        album.setTextColor(accent()); status.setTextColor(accent());
     }
 
     final Runnable tick = new Runnable() {

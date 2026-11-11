@@ -13,6 +13,19 @@ public class Base extends Activity {
     boolean dark;
     static boolean guardOn;
 
+    // {name, background, text, accent}
+    static final Object[][] THEMES = {
+        {"Dracula", 0xFF282a36, 0xFFf8f8f2, 0xFFbd93f9},
+        {"Nord", 0xFF2e3440, 0xFFd8dee9, 0xFF88c0d0},
+        {"Gruvbox", 0xFF282828, 0xFFebdbb2, 0xFFfabd2f},
+        {"Solarized Light", 0xFFfdf6e3, 0xFF657b83, 0xFF268bd2},
+        {"Rose Pine", 0xFF191724, 0xFFe0def4, 0xFFebbcba},
+    };
+    int themeIdx() { return Math.min(getSharedPreferences("p", 0).getInt("theme", 0), THEMES.length - 1); }
+    int bg() { return (Integer) THEMES[themeIdx()][1]; }
+    int fg() { return (Integer) THEMES[themeIdx()][2]; }
+    int accent() { return (Integer) THEMES[themeIdx()][3]; }
+
     /** Crash-loop guard: count uncaught exceptions + log the stack. Home resets the count after 10 s of life. */
     @Override protected void onCreate(android.os.Bundle b) {
         super.onCreate(b);
@@ -54,7 +67,9 @@ public class Base extends Activity {
         idleH.postDelayed(goDark, IDLE_MS);
     }
 
-    @Override protected void onResume() { super.onResume(); touchIdle(); }
+    @Override protected void onResume() { super.onResume(); touchIdle(); onTheme(); }
+    /** Re-apply colors; screens override. Runs on every resume so a theme change shows after going back. */
+    void onTheme() {}
 
     @Override protected void onPause() {
         super.onPause();
