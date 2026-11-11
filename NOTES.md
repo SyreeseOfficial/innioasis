@@ -44,3 +44,10 @@
 - Test: 1030 songs on card (library still being copied; 3,312 not testable yet). Scan 16 s (24 s with plain artist tag) -> est. ~50 s for 3,312. Cache load 130 ms for 1030 -> est. <0.5 s for 3,312. 38 artists / 76 albums for 32 folders (collab tags). 33 rows fall to Unknown Artist/Album. Unicode titles fine.
 - TODO phase 10: re-run on the full 3,312 once copied.
 - phase3 done.
+## Phase 4 results
+- MainActivity = one list screen (modes home/artists/albums/artist/songs via intent extras m/a/b). Library is a static singleton, loaded on a thread from Home. Wheel: DPAD_RIGHT=down, DPAD_LEFT=up, ENTER selects, BACK = activity finish (previous activity keeps its selected row).
+- Verified on device via adb keyevents + screenshots: Home -> Albums -> songs, back restores the same selected row at each level; touch ignored; no crash.
+- Songs: selecting shows a toast stub (phase 5). Home Shuffle All / Now Playing / Settings are toast stubs.
+- Test notes: the "<5 actions" target holds for menu depth (Home -> list -> songs = 3 enters) but long lists need many wheel clicks (no letter jump by PRD). Hand-test the feel of the 38-artist list.
+- Dev tip: `adb shell svc power stayon true` keeps the screen on while plugged; `input keyevent 26` toggles power (check dumpsys power | grep mWakefulness first).
+- phase4 done.

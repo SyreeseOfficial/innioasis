@@ -1,34 +1,120 @@
 package com.y1.music;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.SystemClock;
-import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
+import java.util.*;
 
-// Phase 3 test screen: load cache or rescan, log counts and timings.
+/** One reusable list screen. mode: home | artists | albums | artist (albums of one artist) | songs. */
 public class MainActivity extends Activity {
+    static Library LIB;
+
+    static synchronized Library lib(Context c) {
+        if (LIB == null) {
+            Library l = new Library(c.getFilesDir());
+            if (!l.load()) try { l.rescan(); } catch (Exception e) { /* empty library */ }
+            LIB = l;
+        }
+        return LIB;
+    }
+
+    String mode, artist, album;
+    List<String[]> rows = new ArrayList<String[]>(); // {label, extra...}
+    int sel = 0;
+    ListView lv;
+    BaseAdapter ad;
+
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
-        final TextView t = new TextView(this);
-        t.setTextSize(18);
-        t.setTextColor(Color.WHITE);
-        t.setBackgroundColor(Color.BLACK);
-        t.setText("loading...");
-        setContentView(t);
-        new Thread(new Runnable() { public void run() {
-            Library lib = new Library(getFilesDir());
-            long t0 = SystemClock.elapsedRealtime();
-            String how = "cache";
-            if (!lib.load()) {
-                how = "scan";
-                try { lib.rescan(); } catch (Exception e) { Log.e("Y1LIB", "scan failed", e); }
+        Intent i = getIntent();
+        mode = i.getStringExtra("m");
+        if (mode == null) mode = "home";
+        artist = i.getStringExtra("a");
+        album = i.getStringExtra("b");
+        lv = new ListView(this);
+        lv.setBackgroundColor(Color.BLACK);
+        lv.setDivider(null);
+        lv.setFocusable(false);
+        lv.setOnTouchListener(new View.OnTouchListener() { // touch ignored
+            public boolean onTouch(View v, android.view.MotionEvent e) { return true; }
+        });
+        ad = new BaseAdapter() {
+            public int getCount() { return rows.size(); }
+            public Object getItem(int p) { return rows.get(p); }
+            public long getItemId(int p) { return p; }
+            public View getView(int p, View v, ViewGroup g) {
+                TextView t = (TextView) v;
+                if (t == null) {
+                    t = new TextView(MainActivity.this);
+                    t.setTextSize(24);
+                    t.setSingleLine(true);
+                    t.setPadding(16, 8, 16, 8);
+                    t.setMinHeight(56);
+                }
+                boolean on = p == sel;
+                t.setText(rows.get(p)[0]);
+                t.setTextColor(on ? Color.BLACK : Color.WHITE);
+                t.setBackgroundColor(on ? Color.WHITE : Color.BLACK);
+                return t;
             }
-            final String s = how + ": " + lib.songs.size() + " songs, " + lib.artists().size() + " artists, "
-                + lib.albums(null).size() + " albums, " + (SystemClock.elapsedRealtime() - t0) + " ms";
-            Log.i("Y1LIB", s);
-            runOnUiThread(new Runnable() { public void run() { t.setText(s); } });
-        } }).start();
+        };
+        lv.setAdapter(ad);
+        setContentView(lv);
+        if (mode.equals("home")) {
+            for (String s : new String[] {"Artists", "Albums", "Shuffle All", "Now Playing", "Settings"}) rows.add(new String[] {s});
+            // warm the library (cache load, or first-time scan) without blocking the menu
+            new Thread(new Runnable() { public void run() { lib(MainActivity.this); } }).start();
+        } else fill();
+        ad.notifyDataSetChanged();
+    }
+
+    void fill() {
+        Library l = lib(this);
+        if (mode.equals("artists")) for (String a : l.artists()) rows.add(new String[] {a});
+        else if (mode.equals("albums")) for (String[] a : l.allAlbums()) rows.add(new String[] {a[1] + " - " + a[0], a[0], a[1]});
+        else if (mode.equals("artist")) for (String a : l.albums(artist)) rows.add(new String[] {a, artist, a});
+        else for (Library.Song s : l.songs(artist, album))
+            rows.add(new String[] {(s.track > 0 ? String.format("%02d  ", s.track) : "") + s.title, s.path});
+    }
+
+    void go(String m, String a, String b) {
+        startActivity(new Intent(this, MainActivity.class).putExtra("m", m).putExtra("a", a).putExtra("b", b));
+    }
+
+    void select() {
+        if (rows.isEmpty()) return;
+        String[] r = rows.get(sel);
+        if (mode.equals("home")) {
+            if (sel == 0) go("artists", null, null);
+            else if (sel == 1) go("albums", null, null);
+            else Toast.makeText(this, r[0] + ": later", Toast.LENGTH_SHORT).show();
+        } else if (mode.equals("artists")) go("artist", r[0], null);
+        else if (mode.equals("albums") || mode.equals("artist")) go("songs", r[1], r[2]);
+        else Toast.makeText(this, "play: " + r[0], Toast.LENGTH_SHORT).show(); // phase 5
+    }
+
+    void move(int d) {
+        int n = sel + d;
+        if (n < 0 || n >= rows.size()) return;
+        sel = n;
+        ad.notifyDataSetChanged();
+        lv.setSelectionFromTop(sel, Math.max(0, lv.getHeight() / 2 - 28)); // keep selection mid-screen
+    }
+
+    // Wheel: clockwise = DPAD_RIGHT (down), counter-clockwise = DPAD_LEFT (up); center = ENTER.
+    @Override public boolean onKeyDown(int k, KeyEvent e) {
+        if (k == KeyEvent.KEYCODE_DPAD_RIGHT || k == KeyEvent.KEYCODE_DPAD_DOWN) { move(1); return true; }
+        if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_UP) { move(-1); return true; }
+        if (k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_CENTER) { select(); return true; }
+        return super.onKeyDown(k, e);
     }
 }

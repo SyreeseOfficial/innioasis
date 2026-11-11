@@ -114,6 +114,19 @@ public class Library {
         return l;
     }
 
+    /** Every (artist, album) pair as {artist, album}, sorted A-Z by album name. */
+    public List<String[]> allAlbums() {
+        List<String[]> l = new ArrayList<String[]>();
+        for (Song s : songs) {
+            String[] last = l.isEmpty() ? null : l.get(l.size() - 1);
+            if (last == null || !last[0].equals(s.artist) || !last[1].equals(s.album)) l.add(new String[] {s.artist, s.album});
+        }
+        Collections.sort(l, new Comparator<String[]>() {
+            public int compare(String[] a, String[] b) { return a[1].compareToIgnoreCase(b[1]); }
+        });
+        return l;
+    }
+
     public List<Song> songs(String artist, String album) {
         List<Song> l = new ArrayList<Song>();
         for (Song s : songs) if (s.album.equals(album) && (artist == null || s.artist.equals(artist))) l.add(s);
