@@ -146,7 +146,9 @@ public class MainActivity extends Base {
         rows.add(new String[] {"Brightness: " + brightness() * 100 / 255 + "%"});
         rows.add(new String[] {"Launch Android"});
         rows.add(new String[] {"Theme: " + THEMES[themeIdx()][0]});
-        rows.add(new String[] {"Made by Syreese"}); // sel == 6 has no action
+        rows.add(new String[] {"Sleep"});
+        rows.add(new String[] {"Power off"});
+        rows.add(new String[] {"Made by Syreese"}); // sel == 8 has no action
     }
 
     void settingsAction() {
@@ -173,6 +175,13 @@ public class MainActivity extends Base {
         } else if (sel == 5) {
             getSharedPreferences("p", 0).edit().putInt("theme", (themeIdx() + 1) % THEMES.length).commit();
             onTheme();
+        } else if (sel == 6) { // pause, then screen off; the power button wakes it
+            PlayerService.send(this, "pause");
+            try { android.os.PowerManager.class.getMethod("goToSleep", long.class).invoke(getSystemService(POWER_SERVICE), android.os.SystemClock.uptimeMillis()); }
+            catch (Exception e) { PlayerService.log("sleep failed: " + e); }
+        } else if (sel == 7) { // system shows its own "Power off?" confirm
+            PlayerService.send(this, "pause");
+            startActivity(new Intent("android.intent.action.ACTION_REQUEST_SHUTDOWN").putExtra("android.intent.extra.KEY_CONFIRM", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         }
         settingsRows();
         ad.notifyDataSetChanged();

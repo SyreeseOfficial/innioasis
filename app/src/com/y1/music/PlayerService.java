@@ -121,6 +121,7 @@ public class PlayerService extends Service implements MediaPlayer.OnCompletionLi
         String a = i == null ? null : i.getAction();
         if ("play".equals(a)) { fails = 0; load(); }
         else if ("toggle".equals(a)) { if (playing) pause(); else resume(); }
+        else if ("pause".equals(a)) pause();
         else if ("next".equals(a)) next();
         else if ("prev".equals(a)) prev();
         return START_STICKY;
