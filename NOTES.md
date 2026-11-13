@@ -93,3 +93,4 @@
 ## Wheel in Android Settings (car test)
 - Wheel was DPAD_LEFT/RIGHT system-wide, which can't move focus down a vertical list in Settings/BT. Generic.kl on device now maps 103->DPAD_UP, 108->DPAD_DOWN (original saved as backups/Generic.kl.y1-stock). App accepts both; NowPlaying volume too. Verified with raw sendevent on event2 after reboot: 3 clicks -> Bluetooth row focused.
 - Not reproduced: Back/center dead. Suspect UsbStorageActivity covering the screen when plugged into the car USB (same PC quirk). Hand-test in car.
+- Fix for "Android screen, wheel dead after unplug": it was systemui's UsbStorageActivity (touch-only) staying on top. UsbReceiver (UMS_DISCONNECTED / USB_STATE connected=false) brings our task to front. Tested by simulated broadcast; real unplug not tested.

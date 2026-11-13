@@ -24,6 +24,12 @@
         <activity android:name=".SpikeActivity"/>
         <activity android:name=".NowPlayingActivity"/>
         <service android:name=".PlayerService"/>
+        <receiver android:name=".UsbReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.UMS_DISCONNECTED"/>
+                <action android:name="android.hardware.usb.action.USB_STATE"/>
+            </intent-filter>
+        </receiver>
         <receiver android:name=".MediaButtonReceiver">
             <intent-filter><action android:name="android.intent.action.MEDIA_BUTTON"/></intent-filter>
         </receiver>
