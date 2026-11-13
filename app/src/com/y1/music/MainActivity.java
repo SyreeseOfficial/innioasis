@@ -34,6 +34,7 @@ public class MainActivity extends Base {
     int sel = 0;
     boolean inert; // rows are a placeholder ("Loading..." / "Empty"): Enter does nothing
     ListView lv;
+    TextView dog; // home only
     BaseAdapter ad;
 
     @Override protected void onCreate(Bundle b) {
@@ -82,7 +83,16 @@ public class MainActivity extends Base {
             }
         };
         lv.setAdapter(ad);
-        setContentView(lv);
+        if (mode.equals("home")) {
+            dog = new TextView(this);
+            dog.setText("U\u30FB\u03C9\u30FBU"); // ponytail: font may lack these glyphs; U+1D25 (nose) is missing from the device font, so omega
+            dog.setTextSize(32);
+            dog.setPadding(0, 0, 0, 12);
+            android.widget.FrameLayout f = new android.widget.FrameLayout(this);
+            f.addView(lv);
+            f.addView(dog, new android.widget.FrameLayout.LayoutParams(-2, -2, android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL));
+            setContentView(f);
+        } else setContentView(lv);
         if (mode.equals("home")) {
             for (String s : new String[] {"Artists", "Albums", "Shuffle All", "Now Playing", "Settings"}) rows.add(new String[] {s});
             if (PlayerService.restore(this) && !restoredOnce) { // fresh process: show the last song, paused
@@ -190,6 +200,7 @@ public class MainActivity extends Base {
     @Override void onTheme() {
         if (lv == null) return;
         lv.setBackgroundColor(bg());
+        if (dog != null) dog.setTextColor(accent());
         ad.notifyDataSetChanged();
     }
 
