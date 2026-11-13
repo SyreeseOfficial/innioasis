@@ -6,13 +6,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.media.AudioManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -21,7 +26,8 @@ import android.widget.TextView;
  *  only touched when something changed, and not at all while the backlight is off). */
 public class NowPlayingActivity extends Base {
     ImageView cover;
-    TextView title, artist, album, status;
+    TextView title, artist, album, status, batTxt, volTxt;
+    Icon batIcon, volIcon;
     AudioManager am;
     Handler h = new Handler();
     Library.Song shown;
@@ -48,36 +54,76 @@ public class NowPlayingActivity extends Base {
         return t;
     }
 
+    /** Tiny battery / speaker glyph, drawn in the accent color so it follows the theme. */
+    class Icon extends View {
+        final boolean spk; int pct = 100;
+        final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Icon(boolean spk) { super(NowPlayingActivity.this); this.spk = spk; }
+        @Override protected void onDraw(Canvas c) {
+            float w = getWidth(), h = getHeight();
+            p.setColor(accent());
+            p.setStrokeWidth(2);
+            if (spk) {
+                Path s = new Path();
+                s.moveTo(.05f * w, .36f * h); s.lineTo(.28f * w, .36f * h); s.lineTo(.55f * w, .14f * h);
+                s.lineTo(.55f * w, .86f * h); s.lineTo(.28f * w, .64f * h); s.lineTo(.05f * w, .64f * h); s.close();
+                p.setStyle(Paint.Style.FILL); c.drawPath(s, p);
+                p.setStyle(Paint.Style.STROKE);
+                c.drawArc(new RectF(.4f * w, .3f * h, .85f * w, .7f * h), -55, 110, false, p);
+            } else {
+                RectF body = new RectF(.28f * w, .12f * h, .72f * w, .96f * h);
+                p.setStyle(Paint.Style.STROKE); c.drawRoundRect(body, 3, 3, p);
+                p.setStyle(Paint.Style.FILL);
+                c.drawRect(.42f * w, .02f * h, .58f * w, .12f * h, p);
+                float top = body.bottom - 4 - (body.height() - 8) * Math.max(0, Math.min(100, pct)) / 100f;
+                c.drawRect(body.left + 4, top, body.right - 4, body.bottom - 4, p);
+            }
+        }
+    }
+
+    TextView stat() { TextView t = tv(16, 0, 1); t.setPadding(10, 0, 0, 0); return t; }
+    LinearLayout row(Icon i, TextView t) {
+        LinearLayout r = new LinearLayout(this);
+        r.setGravity(Gravity.CENTER_VERTICAL);
+        r.addView(i, new LinearLayout.LayoutParams(22, 24));
+        r.addView(t);
+        r.setPadding(0, 6, 0, 0);
+        return r;
+    }
+
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         am = (AudioManager) getSystemService(AUDIO_SERVICE);
         maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         LinearLayout root = new LinearLayout(this);
         rootView = root;
-        root.setPadding(12, 12, 12, 12);
+        root.setPadding(24, 24, 12, 24);
         cover = new ImageView(this);
         cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        root.addView(cover, new LinearLayout.LayoutParams(240, 240));
+        root.addView(cover, new LinearLayout.LayoutParams(312, 312)); // square, fills the height minus padding
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(16, 0, 0, 0);
-        title = tv(22, 0, 4);
-        artist = tv(18, 0, 2);
-        album = tv(16, 0, 2);
-        status = tv(16, 0, 3);
-        col.addView(title); col.addView(artist); col.addView(album);
-        LinearLayout.LayoutParams fill = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
-        root.addView(col, fill);
-        col.addView(new android.view.View(this), new LinearLayout.LayoutParams(1, 0, 1)); // spacer pushes status down
-        col.addView(status);
+        col.setPadding(18, 0, 0, 0);
+        artist = tv(15, 0, 3);
+        album = tv(15, 0, 3);
+        title = tv(20, 0, 6);
+        title.setPadding(0, 10, 0, 0);
+        status = tv(13, 0, 1);
+        batTxt = stat(); volTxt = stat();
+        batIcon = new Icon(false); volIcon = new Icon(true);
+        col.addView(artist); col.addView(album); col.addView(title);
+        col.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1)); // spacer pushes status down
+        col.addView(status); col.addView(row(batIcon, batTxt)); col.addView(row(volIcon, volTxt));
+        root.addView(col, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1));
         setContentView(root);
     }
 
     @Override void onTheme() {
         if (rootView == null) return;
         rootView.setBackgroundColor(bg());
-        title.setTextColor(fg()); artist.setTextColor(fg());
-        album.setTextColor(accent()); status.setTextColor(accent());
+        title.setTextColor(fg()); artist.setTextColor(accent()); album.setTextColor(accent());
+        status.setTextColor(accent()); batTxt.setTextColor(fg()); volTxt.setTextColor(fg());
+        batIcon.invalidate(); volIcon.invalidate();
     }
 
     final Runnable tick = new Runnable() {
@@ -108,9 +154,13 @@ public class NowPlayingActivity extends Base {
             album.setText(s == null ? "" : s.album);
             loadCover(s);
         }
-        String st = (PlayerService.playing ? "" : "Paused\n") + (PlayerService.shuffle ? "SHUFFLE  " : "")
-            + "Bat " + bat + "%\nVol " + am.getStreamVolume(AudioManager.STREAM_MUSIC) + "/" + maxVol;
-        if (!st.equals(lastStatus)) { lastStatus = st; status.setText(st); }
+        String st = (PlayerService.playing ? "" : "Paused  ") + (PlayerService.shuffle ? "SHUFFLE" : "");
+        String bt = bat + "%", vt = am.getStreamVolume(AudioManager.STREAM_MUSIC) + "/" + maxVol;
+        if (!(st + bt + vt).equals(lastStatus)) {
+            lastStatus = st + bt + vt;
+            status.setText(st.trim()); batTxt.setText(bt); volTxt.setText(vt);
+            batIcon.pct = bat; batIcon.invalidate();
+        }
     }
 
     void loadCover(final Library.Song s) {
