@@ -20,7 +20,7 @@ public class Library {
         String[] p = line.split("\t", -1);
         if (p.length < 5) return null;
         Song g = new Song();
-        g.path = p[0]; g.title = p[1]; g.artist = p[2]; g.album = p[3]; g.track = Integer.parseInt(p[4]);
+        g.path = p[0]; g.title = p[1]; g.artist = p[2].intern(); g.album = p[3].intern(); g.track = Integer.parseInt(p[4]);
         if (p.length > 5) try { g.mtime = Long.parseLong(p[5]); } catch (Exception e) {} // old queue.dat has no date
         return g;
     }

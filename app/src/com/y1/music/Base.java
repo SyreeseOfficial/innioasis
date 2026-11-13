@@ -23,13 +23,19 @@ public class Base extends Activity {
         {"Rose Pine", 0xFF191724, 0xFFe0def4, 0xFFebbcba},
     };
     int themeIdx() { return Math.min(getSharedPreferences("p", 0).getInt("theme", 0), THEMES.length - 1); }
-    int bg() { return (Integer) THEMES[themeIdx()][1]; }
-    int fg() { return (Integer) THEMES[themeIdx()][2]; }
-    int accent() { return (Integer) THEMES[themeIdx()][3]; }
+    int cBg, cFg, cAccent; // cached by loadTheme(): getView runs per row per wheel click
+    void loadTheme() {
+        Object[] t = THEMES[themeIdx()];
+        cBg = (Integer) t[1]; cFg = (Integer) t[2]; cAccent = (Integer) t[3];
+    }
+    int bg() { return cBg; }
+    int fg() { return cFg; }
+    int accent() { return cAccent; }
 
     /** Crash-loop guard: count uncaught exceptions + log the stack. Home resets the count after 10 s of life. */
     @Override protected void onCreate(android.os.Bundle b) {
         super.onCreate(b);
+        loadTheme();
         if (guardOn) return;
         guardOn = true;
         final android.content.Context c = getApplicationContext();
@@ -72,7 +78,7 @@ public class Base extends Activity {
         idleH.postDelayed(goDark, IDLE_MS);
     }
 
-    @Override protected void onResume() { super.onResume(); touchIdle(); onTheme(); }
+    @Override protected void onResume() { super.onResume(); loadTheme(); touchIdle(); onTheme(); }
     /** Re-apply colors; screens override. Runs on every resume so a theme change shows after going back. */
     void onTheme() {}
 

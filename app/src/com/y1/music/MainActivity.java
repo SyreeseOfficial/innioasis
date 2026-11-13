@@ -191,7 +191,7 @@ public class MainActivity extends Base {
             startActivity(new Intent().setClassName("com.android.settings", "com.android.settings.Settings").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } else if (sel == 4) {
             getSharedPreferences("p", 0).edit().putInt("theme", (themeIdx() + 1) % THEMES.length).commit();
-            onTheme();
+            loadTheme(); onTheme();
         } else if (sel == 5) { // pause, then screen off; the power button wakes it
             PlayerService.send(this, "pause");
             try { android.os.PowerManager.class.getMethod("goToSleep", long.class).invoke(getSystemService(POWER_SERVICE), android.os.SystemClock.uptimeMillis()); }
