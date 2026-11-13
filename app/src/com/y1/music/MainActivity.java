@@ -196,9 +196,9 @@ public class MainActivity extends Base {
             PlayerService.send(this, "pause");
             try { android.os.PowerManager.class.getMethod("goToSleep", long.class).invoke(getSystemService(POWER_SERVICE), android.os.SystemClock.uptimeMillis()); }
             catch (Exception e) { PlayerService.log("sleep failed: " + e); }
-        } else if (sel == 6) { // system shows its own "Power off?" confirm
+        } else if (sel == 6) { // no confirm: the system dialog cannot be reached with the wheel
             PlayerService.send(this, "pause");
-            startActivity(new Intent("android.intent.action.ACTION_REQUEST_SHUTDOWN").putExtra("android.intent.extra.KEY_CONFIRM", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            startActivity(new Intent("android.intent.action.ACTION_REQUEST_SHUTDOWN").putExtra("android.intent.extra.KEY_CONFIRM", false).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } else if (sel == 7) usb(!usb(null));
         settingsRows();
         ad.notifyDataSetChanged();
