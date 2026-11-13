@@ -21,7 +21,6 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity-alias>
-        <activity android:name=".SpikeActivity"/>
         <activity android:name=".NowPlayingActivity"/>
         <service android:name=".PlayerService"/>
         <receiver android:name=".UsbReceiver">

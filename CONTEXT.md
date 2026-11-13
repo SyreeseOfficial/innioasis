@@ -35,7 +35,7 @@ No full custom firmware. Kernel, MTK bootloader, drivers and Bluetooth stack are
 
 ## Decisions
 - Android SDK at `~/Android/Sdk` is OK to use for building (user confirmed).
-- Full spec in `PRD.md`.
+- Spec lived in PRD.md (removed; see git history).
 
 ## Notes
 - `backups/*.apk` is gitignored (large, third-party binaries). `Generic.kl.orig` is tracked.

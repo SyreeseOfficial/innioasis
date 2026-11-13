@@ -154,7 +154,7 @@ public class MainActivity extends Base {
         rows.add(new String[] {"Rescan library" + scanMsg});
         rows.add(new String[] {"Brightness: " + brightness() * 100 / 255 + "%"});
         rows.add(new String[] {"Launch Android"});
-        rows.add(new String[] {"Theme: " + THEMES[themeIdx()][0]});
+        rows.add(new String[] {"Theme: " + NAMES[themeIdx()]});
         rows.add(new String[] {"Sleep"});
         rows.add(new String[] {"Power off"});
         rows.add(new String[] {"USB storage: " + (usb(null) ? "On" : "Off")});
@@ -190,7 +190,7 @@ public class MainActivity extends Base {
         } else if (sel == 3) { // the stock "home" is the Y1 player, so the plain Android UI is Settings
             startActivity(new Intent().setClassName("com.android.settings", "com.android.settings.Settings").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } else if (sel == 4) {
-            getSharedPreferences("p", 0).edit().putInt("theme", (themeIdx() + 1) % THEMES.length).commit();
+            getSharedPreferences("p", 0).edit().putInt("theme", (themeIdx() + 1) % NAMES.length).commit();
             loadTheme(); onTheme();
         } else if (sel == 5) { // pause, then screen off; the power button wakes it
             PlayerService.send(this, "pause");

@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.util.LruCache;
 import java.io.*;
-import java.security.MessageDigest;
 
 /** Album art. One cover per artist+album: a few in memory, and 240 px JPEGs in cacheDir/covers so a song change
  *  doesn't re-open the audio file. A 0-byte file means "this album has no art". Rescan clears it all.
@@ -17,20 +16,12 @@ public class Covers {
 
     static File dir(Context c) { return new File(c.getCacheDir(), "covers"); }
 
-    static String md5(String s) {
-        try {
-            StringBuilder b = new StringBuilder();
-            for (byte x : MessageDigest.getInstance("MD5").digest(s.getBytes("UTF-8"))) b.append(String.format("%02x", x));
-            return b.toString();
-        } catch (Exception e) { return Integer.toHexString(s.hashCode()); }
-    }
-
     /** The cover, or null if the album has none (or it couldn't be read right now). */
     static Bitmap get(Context c, Library.Song s) {
         String key = s.artist + "\t" + s.album;
         Bitmap bm = mem.get(key);
         if (bm != null) return bm;
-        File f = new File(dir(c), md5(key) + ".jpg");
+        File f = new File(dir(c), Integer.toHexString(key.hashCode()) + ".jpg");
         if (f.exists()) {
             if (f.length() == 0) return null;
             bm = BitmapFactory.decodeFile(f.getPath());

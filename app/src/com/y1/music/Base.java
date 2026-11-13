@@ -13,21 +13,13 @@ public class Base extends Activity {
     boolean dark;
     static boolean guardOn;
 
-    // {name, background, text, accent}
-    static final Object[][] THEMES = {
-        {"Classic", 0xFF000000, 0xFFffffff, 0xFFffffff},
-        {"Dracula", 0xFF282a36, 0xFFf8f8f2, 0xFFbd93f9},
-        {"Nord", 0xFF2e3440, 0xFFd8dee9, 0xFF88c0d0},
-        {"Gruvbox", 0xFF282828, 0xFFebdbb2, 0xFFfabd2f},
-        {"Solarized Light", 0xFFfdf6e3, 0xFF657b83, 0xFF268bd2},
-        {"Rose Pine", 0xFF191724, 0xFFe0def4, 0xFFebbcba},
-    };
-    int themeIdx() { return Math.min(getSharedPreferences("p", 0).getInt("theme", 0), THEMES.length - 1); }
+    static final String[] NAMES = {"Classic", "Dracula", "Nord", "Gruvbox", "Solarized Light", "Rose Pine"};
+    static final int[] BG = {0xFF000000, 0xFF282a36, 0xFF2e3440, 0xFF282828, 0xFFfdf6e3, 0xFF191724};
+    static final int[] FG = {0xFFffffff, 0xFFf8f8f2, 0xFFd8dee9, 0xFFebdbb2, 0xFF657b83, 0xFFe0def4};
+    static final int[] ACC = {0xFFffffff, 0xFFbd93f9, 0xFF88c0d0, 0xFFfabd2f, 0xFF268bd2, 0xFFebbcba};
+    int themeIdx() { return Math.min(getSharedPreferences("p", 0).getInt("theme", 0), NAMES.length - 1); }
     int cBg, cFg, cAccent; // cached by loadTheme(): getView runs per row per wheel click
-    void loadTheme() {
-        Object[] t = THEMES[themeIdx()];
-        cBg = (Integer) t[1]; cFg = (Integer) t[2]; cAccent = (Integer) t[3];
-    }
+    void loadTheme() { int i = themeIdx(); cBg = BG[i]; cFg = FG[i]; cAccent = ACC[i]; }
     int bg() { return cBg; }
     int fg() { return cFg; }
     int accent() { return cAccent; }

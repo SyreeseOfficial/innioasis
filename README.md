@@ -22,14 +22,21 @@ Plain Java, no libraries, no Gradle. One APK, a handful of files in `app/src/com
 Needs the Android SDK (`~/Android/Sdk`), the AOSP platform test key in `~/.android/aosp/`, and the Y1 on `adb`. Music goes in `/storage/sdcard0/Music`.
 
 ## Make it the launcher
-Press Home and pick **Y1 Music** with **Always**. Optionally `./disable.sh` turns off 20 unused system apps.
+Press Home and pick **Y1 Music** with **Always**. Optionally `./pkgs.sh disable` turns off 20 unused system apps.
 
 ## Recovery
 ```
 adb uninstall com.y1.music     # stock player is home again
-./enable.sh                    # re-enable disabled apps
+./pkgs.sh enable                  # re-enable disabled apps
 ```
-More in `NOTES.md`. Design in `PRD.md`.
+Back to Rockbox (needs `backups/org.rockbox.apk` and `backups/Generic.kl.orig`, kept locally):
+```
+adb root; adb shell mount -o remount,rw /system
+adb push backups/org.rockbox.apk /system/app/
+adb push backups/Generic.kl.orig /system/usr/keylayout/Generic.kl
+adb shell mount -o remount,ro /system; adb reboot
+```
+More in `NOTES.md` and `CONTEXT.md`.
 
 ## Status
 Phases 0 to 9 done. Phase 10 (hardening, soak test) is next.

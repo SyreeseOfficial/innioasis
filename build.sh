@@ -6,7 +6,7 @@ SDK=~/Android/Sdk; BT=$SDK/build-tools/35.0.0; JAR=$SDK/platforms/android-36/and
 # signed with the public AOSP platform test key (matches device, lets us run as uid system); keys live in ~/.android/aosp
 rm -rf build; mkdir -p build/classes build/gen
 $BT/aapt package -f -m -J build/gen -M app/AndroidManifest.xml -S app/res -I $JAR -F build/base.apk
-javac --release 8 -Xlint:-options -cp $JAR -d build/classes $(find app/src spike build/gen -name '*.java')
+javac --release 8 -Xlint:-options -cp $JAR -d build/classes $(find app/src build/gen -name '*.java')
 $BT/d8 --min-api 17 --lib $JAR --output build $(find build/classes -name '*.class')
 cp build/base.apk build/unsigned.apk
 (cd build && zip -q unsigned.apk classes.dex)

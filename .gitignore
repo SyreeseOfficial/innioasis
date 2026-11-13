@@ -1,3 +1,6 @@
 backups/*.apk
 build/
 *.keystore
+backups/sd-dot-rockbox/
+backups/librockbox.so
+backups/bootanimation.zip.rockbox
