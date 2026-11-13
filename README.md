@@ -9,7 +9,7 @@ Browse by artist or album, shuffle, play. Nothing else.
 - Artists, Albums, Shuffle All, Now Playing, Settings
 - FLAC (up to 48 kHz), mp3, m4a, with cover art
 - Resumes the last song, paused, after a reboot
-- Backlight dims while playing; Bluetooth via Android's own settings
+- Backlight dims then turns off while playing (center wakes it); Bluetooth via Android's own settings
 - Menu in about 9.5 s after boot (target was 20 s)
 
 ## How it's built

@@ -158,7 +158,18 @@ public class MainActivity extends Base {
         rows.add(new String[] {"Theme: " + THEMES[themeIdx()][0]});
         rows.add(new String[] {"Sleep"});
         rows.add(new String[] {"Power off"});
-        rows.add(new String[] {"Made by Syreese"}); // sel == 8 has no action
+        rows.add(new String[] {"USB storage: " + (usb(null) ? "On" : "Off")});
+        rows.add(new String[] {"Made by Syreese"}); // sel == 9 has no action
+    }
+
+    /** USB mass storage on/off via StorageManager (we run as uid system). The stock dialog needs left/right keys the wheel lacks. */
+    boolean usb(Boolean set) {
+        try {
+            Object sm = getSystemService("storage");
+            Class<?> c = sm.getClass();
+            if (set != null) c.getMethod(set ? "enableUsbMassStorage" : "disableUsbMassStorage").invoke(sm);
+            return (Boolean) c.getMethod("isUsbMassStorageEnabled").invoke(sm);
+        } catch (Exception e) { PlayerService.log("usb failed: " + e); return false; }
     }
 
     void settingsAction() {
@@ -192,7 +203,7 @@ public class MainActivity extends Base {
         } else if (sel == 7) { // system shows its own "Power off?" confirm
             PlayerService.send(this, "pause");
             startActivity(new Intent("android.intent.action.ACTION_REQUEST_SHUTDOWN").putExtra("android.intent.extra.KEY_CONFIRM", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        }
+        } else if (sel == 8) usb(!usb(null));
         settingsRows();
         ad.notifyDataSetChanged();
     }

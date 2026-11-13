@@ -45,7 +45,7 @@ Artists, Albums, Shuffle All, Now Playing, Settings.
 
 ## Behavior
 - **Resume:** remembers song, position and queue. After boot or reopen it shows Now Playing paused until you press play.
-- **Screen:** dims to the minimum (about 12%, Android's floor) after 15 seconds while playing; any wheel or button press brings it back (decided: no real screen-off, the wheel has no WAKE flag in Generic.kl and /system stays untouched). Music keeps playing.
+- **Screen:** dims to the minimum after 15 seconds while playing, fully off 15 seconds after that; center or power wakes it (first center press is swallowed). Music keeps playing.
 - **Bad files:** skip to the next song and show a brief "can't play X" message. Log it.
 - **Look:** dark, high contrast, large text.
 

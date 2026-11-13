@@ -50,7 +50,11 @@ public class Base extends Activity {
 
     final Runnable goDark = new Runnable() {
         public void run() {
-            if (PlayerService.playing) setBrightness(0f); // ponytail: 0f may be clamped by the driver; real sleep needs a .kl WAKE flag
+            if (PlayerService.playing) {
+                if (!dark) setBrightness(0f);
+                else try { android.os.PowerManager.class.getMethod("goToSleep", long.class).invoke(getSystemService(POWER_SERVICE), android.os.SystemClock.uptimeMillis()); }
+                catch (Exception e) { PlayerService.log("sleep failed: " + e); } // 15 s dim, 15 s later screen off; center (WAKE_DROPPED) or power wakes
+            }
             idleH.postDelayed(this, IDLE_MS);
         }
     };
