@@ -126,8 +126,8 @@ public class NowPlayingActivity extends Base {
 
     @Override public boolean onKeyDown(int k, KeyEvent e) {
         int v = 0;
-        if (k == KeyEvent.KEYCODE_DPAD_RIGHT) v = 1;       // clockwise = louder
-        else if (k == KeyEvent.KEYCODE_DPAD_LEFT) v = -1;
+        if (k == KeyEvent.KEYCODE_DPAD_RIGHT || k == KeyEvent.KEYCODE_DPAD_DOWN) v = 1;       // clockwise = louder
+        else if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_UP) v = -1;
         if (v != 0) {
             int n = Math.max(0, Math.min(am.getStreamMaxVolume(AudioManager.STREAM_MUSIC), am.getStreamVolume(AudioManager.STREAM_MUSIC) + v));
             am.setStreamVolume(AudioManager.STREAM_MUSIC, n, 0);

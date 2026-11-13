@@ -90,3 +90,6 @@
 - With USB plugged to the PC, UsbStorageActivity (systemui) covers our app on boot until the unshare commands in "Storage layout" are run: PC-only quirk.
 - NOT verified (hands): BT headphone pairing/audio still working after boot (BT daemons are up), power-button cold boot (adb reboot used).
 - phase9 done.
+## Wheel in Android Settings (car test)
+- Wheel was DPAD_LEFT/RIGHT system-wide, which can't move focus down a vertical list in Settings/BT. Generic.kl on device now maps 103->DPAD_UP, 108->DPAD_DOWN (original saved as backups/Generic.kl.y1-stock). App accepts both; NowPlaying volume too. Verified with raw sendevent on event2 after reboot: 3 clicks -> Bluetooth row focused.
+- Not reproduced: Back/center dead. Suspect UsbStorageActivity covering the screen when plugged into the car USB (same PC quirk). Hand-test in car.
