@@ -95,7 +95,7 @@ Goal: pick a song, it plays, the queue advances.
 ---
 
 ## Phase 6: Now Playing + shuffle  (~2 h)  [PRD build step 5, part 2]
-1. Now Playing screen: title, artist, album, battery %, shuffle indicator. Cover if enabled (decode small, e.g. 300 px, off the UI thread; cache the last one).
+1. Now Playing screen: title, artist, album, battery %, shuffle indicator. Cover (decode small, e.g. 300 px, off the UI thread; cache the last one).
 2. Wheel = volume here (`AudioManager`).
 3. Shuffle: Shuffle All (home), and shuffle inside an artist/album (menu row at top of those lists). Shuffle = shuffled copy of the queue, indicator on.
 4. Home → Now Playing opens it; starting a song opens it automatically.
@@ -117,7 +117,6 @@ Goal: pick a song, it plays, the queue advances.
 
 ## Phase 8: Settings  (~1 h)  [PRD build step 6]
 1. Bluetooth → `Settings.ACTION_BLUETOOTH_SETTINGS`.
-2. Show covers on/off (pref, default on).
 3. Rescan library (rebuild cache, show count when done).
 4. Screen brightness (a few fixed steps via wheel).
 5. Launch Android: start the stock home/settings; must be reachable even if we're the launcher (see phase 9).

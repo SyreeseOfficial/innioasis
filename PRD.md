@@ -31,14 +31,13 @@ Artists, Albums, Shuffle All, Now Playing, Settings.
 - Shuffle is available for All, and within an artist or album.
 
 ### Now Playing
-- Cover (if enabled), title, artist, album, battery level, shuffle indicator.
+- Cover, title, artist, album, battery level, shuffle indicator.
 - No progress bar or time.
 - Wheel changes volume.
 - Previous restarts the song if more than 3 seconds in, otherwise goes to the previous song.
 
 ### Settings
 - Bluetooth (opens Android's settings screen)
-- Show covers on/off (default on)
 - Rescan library
 - Screen brightness
 - Launch Android (escape to the normal Android UI)

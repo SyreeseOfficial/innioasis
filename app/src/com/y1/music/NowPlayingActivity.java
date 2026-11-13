@@ -166,7 +166,7 @@ public class NowPlayingActivity extends Base {
     void loadCover(final Library.Song s) {
         cover.setImageBitmap(null);
         coverPath = s == null ? null : s.path;
-        if (s == null || !getSharedPreferences("p", 0).getBoolean("covers", true)) return;
+        if (s == null) return;
         coverIO.execute(new Runnable() { public void run() {
             if (!s.path.equals(coverPath)) return; // user already skipped on: don't decode art nobody will see
             final Bitmap bm = Covers.get(NowPlayingActivity.this, s);

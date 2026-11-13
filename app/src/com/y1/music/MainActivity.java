@@ -151,7 +151,6 @@ public class MainActivity extends Base {
     void settingsRows() {
         rows.clear();
         rows.add(new String[] {"Bluetooth"});
-        rows.add(new String[] {"Covers: " + (getSharedPreferences("p", 0).getBoolean("covers", true) ? "On" : "Off")});
         rows.add(new String[] {"Rescan library" + scanMsg});
         rows.add(new String[] {"Brightness: " + brightness() * 100 / 255 + "%"});
         rows.add(new String[] {"Launch Android"});
@@ -159,7 +158,7 @@ public class MainActivity extends Base {
         rows.add(new String[] {"Sleep"});
         rows.add(new String[] {"Power off"});
         rows.add(new String[] {"USB storage: " + (usb(null) ? "On" : "Off")});
-        rows.add(new String[] {"Made by Syreese"}); // sel == 9 has no action
+        rows.add(new String[] {"Made by Syreese"}); // sel == 8 has no action
     }
 
     /** USB mass storage on/off via StorageManager (we run as uid system). The stock dialog needs left/right keys the wheel lacks. */
@@ -175,9 +174,6 @@ public class MainActivity extends Base {
     void settingsAction() {
         if (sel == 0) startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));
         else if (sel == 1) {
-            android.content.SharedPreferences p = getSharedPreferences("p", 0);
-            p.edit().putBoolean("covers", !p.getBoolean("covers", true)).commit();
-        } else if (sel == 2) {
             scanMsg = " (scanning...)";
             new Thread(new Runnable() { public void run() {
                 String m;
@@ -185,25 +181,25 @@ public class MainActivity extends Base {
                 scanMsg = m;
                 runOnUiThread(new Runnable() { public void run() { settingsRows(); ad.notifyDataSetChanged(); } });
             } }).start();
-        } else if (sel == 3) {
+        } else if (sel == 2) {
             int b = brightness(), n = BRIGHT[0];
             for (int v : BRIGHT) if (v > b) { n = v; break; } // next step up, wrapping to the lowest
             android.provider.Settings.System.putInt(getContentResolver(), android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE, 0);
             android.provider.Settings.System.putInt(getContentResolver(), android.provider.Settings.System.SCREEN_BRIGHTNESS, n);
             setBrightness(-1f); // re-apply the system value now
-        } else if (sel == 4) { // the stock "home" is the Y1 player, so the plain Android UI is Settings
+        } else if (sel == 3) { // the stock "home" is the Y1 player, so the plain Android UI is Settings
             startActivity(new Intent().setClassName("com.android.settings", "com.android.settings.Settings").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } else if (sel == 5) {
+        } else if (sel == 4) {
             getSharedPreferences("p", 0).edit().putInt("theme", (themeIdx() + 1) % THEMES.length).commit();
             onTheme();
-        } else if (sel == 6) { // pause, then screen off; the power button wakes it
+        } else if (sel == 5) { // pause, then screen off; the power button wakes it
             PlayerService.send(this, "pause");
             try { android.os.PowerManager.class.getMethod("goToSleep", long.class).invoke(getSystemService(POWER_SERVICE), android.os.SystemClock.uptimeMillis()); }
             catch (Exception e) { PlayerService.log("sleep failed: " + e); }
-        } else if (sel == 7) { // system shows its own "Power off?" confirm
+        } else if (sel == 6) { // system shows its own "Power off?" confirm
             PlayerService.send(this, "pause");
             startActivity(new Intent("android.intent.action.ACTION_REQUEST_SHUTDOWN").putExtra("android.intent.extra.KEY_CONFIRM", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } else if (sel == 8) usb(!usb(null));
+        } else if (sel == 7) usb(!usb(null));
         settingsRows();
         ad.notifyDataSetChanged();
     }
