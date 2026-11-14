@@ -12,7 +12,9 @@ public class BtPairReceiver extends BroadcastReceiver {
         int v = i.getIntExtra("android.bluetooth.device.extra.PAIRING_VARIANT", -1);
         if (d == null) return;
         try {
-            if (v == 0) d.setPin("0000".getBytes()); // PIN: headphones/speakers use 0000. ponytail: PIN-entry for other devices not supported
+            if (v == 0 || v == 1) { // PIN / passkey typed on this device (car shows a random one): wheel entry screen
+                c.startActivity(new Intent(c, PinActivity.class).putExtra(BluetoothDevice.EXTRA_DEVICE, d).putExtra("passkey", v == 1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            }
             else if (v == 2 || v == 3) d.setPairingConfirmation(true); // passkey confirm / just works
             else return; // other variants: let the stock dialog show
             if (isOrderedBroadcast()) abortBroadcast();

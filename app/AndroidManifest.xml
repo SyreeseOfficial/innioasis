@@ -25,6 +25,7 @@
             </intent-filter>
         </activity-alias>
         <activity android:name=".NowPlayingActivity"/>
+        <activity android:name=".PinActivity"/>
         <service android:name=".PlayerService"/>
         <receiver android:name=".UsbReceiver">
             <intent-filter>
