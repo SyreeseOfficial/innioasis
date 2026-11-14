@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
     <uses-permission android:name="android.permission.DEVICE_POWER"/>
     <uses-permission android:name="android.permission.SHUTDOWN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED"/>
     <uses-sdk android:minSdkVersion="17" android:targetSdkVersion="17"/>
     <application android:label="Y1 Music" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name=".MainActivity">
@@ -28,6 +31,9 @@
                 <action android:name="android.intent.action.UMS_DISCONNECTED"/>
                 <action android:name="android.hardware.usb.action.USB_STATE"/>
             </intent-filter>
+        </receiver>
+        <receiver android:name=".BtPairReceiver">
+            <intent-filter android:priority="999"><action android:name="android.bluetooth.device.action.PAIRING_REQUEST"/></intent-filter>
         </receiver>
         <receiver android:name=".MediaButtonReceiver">
             <intent-filter><action android:name="android.intent.action.MEDIA_BUTTON"/></intent-filter>
