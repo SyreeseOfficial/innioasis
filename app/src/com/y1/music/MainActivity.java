@@ -102,6 +102,7 @@ public class MainActivity extends Base {
             // warm the library (cache load, or first-time scan) without blocking the menu
             new Thread(new Runnable() { public void run() { lib(MainActivity.this); } }).start();
         } else if (mode.equals("settings")) settingsRows();
+        else if (mode.equals("bt")) btInit();
         else load();
         ad.notifyDataSetChanged();
     }
@@ -172,7 +173,7 @@ public class MainActivity extends Base {
     }
 
     void settingsAction() {
-        if (sel == 0) startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));
+        if (sel == 0) { go("bt", null, null); return; }
         else if (sel == 1) {
             scanMsg = " (scanning...)";
             new Thread(new Runnable() { public void run() {
@@ -202,6 +203,77 @@ public class MainActivity extends Base {
         } else if (sel == 7) usb(!usb(null));
         settingsRows();
         ad.notifyDataSetChanged();
+    }
+
+    // ---- bluetooth devices: the stock list needs DPAD_RIGHT to reach a device's gear (disconnect/forget); the wheel has none ----
+    android.bluetooth.BluetoothProfile a2dp, hsp;
+    android.bluetooth.BluetoothAdapter ba;
+    android.content.BroadcastReceiver btRx;
+
+    void btInit() {
+        ba = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
+        btRows();
+        if (ba == null) return;
+        android.bluetooth.BluetoothProfile.ServiceListener l = new android.bluetooth.BluetoothProfile.ServiceListener() {
+            public void onServiceConnected(int p, android.bluetooth.BluetoothProfile pr) { if (p == 2) a2dp = pr; else hsp = pr; btRefresh(); }
+            public void onServiceDisconnected(int p) { if (p == 2) a2dp = null; else hsp = null; }
+        };
+        ba.getProfileProxy(this, l, 2); // A2DP
+        ba.getProfileProxy(this, l, 1); // HEADSET
+        btRx = new android.content.BroadcastReceiver() { public void onReceive(Context c, Intent i) { btRefresh(); } };
+        android.content.IntentFilter f = new android.content.IntentFilter("android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED");
+        f.addAction("android.bluetooth.headset.profile.action.CONNECTION_STATE_CHANGED");
+        f.addAction(android.bluetooth.BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        registerReceiver(btRx, f);
+    }
+
+    @Override protected void onDestroy() {
+        if (btRx != null) unregisterReceiver(btRx);
+        if (ba != null) { ba.closeProfileProxy(2, a2dp); ba.closeProfileProxy(1, hsp); }
+        super.onDestroy();
+    }
+
+    /** A2DP reports 10 (PLAYING) instead of 2 (CONNECTED) while audio streams: that's the likely reason disconnect did nothing. */
+    boolean btOn(android.bluetooth.BluetoothDevice d) {
+        for (android.bluetooth.BluetoothProfile p : new android.bluetooth.BluetoothProfile[] {a2dp, hsp}) {
+            if (p == null) continue;
+            int st = p.getConnectionState(d);
+            PlayerService.log("bt state " + d.getAddress() + " " + st);
+            if (st == 2 || st == 10 || st == 1) return true; // connected, playing, or connecting
+        }
+        return false;
+    }
+
+    void btRows() {
+        rows.clear();
+        rows.add(new String[] {"Pair new device"});
+        if (ba == null) return;
+        for (android.bluetooth.BluetoothDevice d : ba.getBondedDevices()) {
+            String n = d.getName() == null ? d.getAddress() : d.getName();
+            rows.add(new String[] {n + (btOn(d) ? " (connected)" : ""), d.getAddress(), "t"});
+            rows.add(new String[] {"   Forget " + n, d.getAddress(), "f"});
+        }
+    }
+
+    void btRefresh() {
+        btRows();
+        sel = Math.min(sel, rows.size() - 1);
+        ad.notifyDataSetChanged();
+    }
+
+    void btAction() {
+        String[] r = rows.get(sel);
+        if (r.length < 3) { startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)); return; }
+        android.bluetooth.BluetoothDevice d = ba.getRemoteDevice(r[1]);
+        try {
+            if (r[2].equals("f")) d.getClass().getMethod("removeBond").invoke(d);
+            else if (btOn(d)) { // disconnect every profile
+                for (android.bluetooth.BluetoothProfile p : new android.bluetooth.BluetoothProfile[] {a2dp, hsp})
+                    if (p != null) p.getClass().getMethod("disconnect", android.bluetooth.BluetoothDevice.class).invoke(p, d);
+            } else if (a2dp != null) a2dp.getClass().getMethod("connect", android.bluetooth.BluetoothDevice.class).invoke(a2dp, d); // ponytail: A2DP only; add hsp if a device needs calls
+        } catch (Exception e) { PlayerService.log("bt action failed: " + e); Toast.makeText(this, "BT failed: " + e, Toast.LENGTH_LONG).show(); }
+        if (a2dp == null) Toast.makeText(this, "A2DP service not ready", Toast.LENGTH_SHORT).show();
+        btRefresh();
     }
 
     @Override void onTheme() {
@@ -237,6 +309,7 @@ public class MainActivity extends Base {
             else if (sel == 3) startActivity(new Intent(this, NowPlayingActivity.class));
             else go("settings", null, null);
         } else if (mode.equals("settings")) settingsAction();
+        else if (mode.equals("bt")) btAction();
         else if (mode.equals("artists")) go("artist", r[0], null);
         else if (sel == 0 && (mode.equals("artist") || mode.equals("songs"))) { // Shuffle row of an artist / album list
             PlayerService.play(this, lib(this).songs(artist, album), 0, true);
