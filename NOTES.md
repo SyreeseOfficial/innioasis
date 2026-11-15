@@ -100,3 +100,6 @@
 - Row not hand-tested yet. Flow: plug in, Back out of the USB screen, Settings > USB storage. If it stays Off, grep logcat for "usb failed".
 ## BT pairing prompt
 - Stock pairing dialog (Cancel/OK side by side) was unreachable with the wheel. BtPairReceiver (priority 999 on PAIRING_REQUEST) auto-accepts: PIN variant -> "0000", confirm/just-works -> setPairingConfirmation(true), then aborts the broadcast so Settings shows no dialog. Not hand-tested with a real device. Other PIN-entry devices still get the stock dialog.
+## Back to stock (2026-11-15)
+- Custom app removed from the device and the working tree; device is stock (Generic.kl = backups/Generic.kl.y1-stock, 20 packages re-enabled, com.y1.music + rukeyboard uninstalled). Boot logo left black.
+- Get the custom app back: `git checkout custom-app-final -- app build.sh pkgs.sh && ./build.sh` (needs ~/.android/aosp platform key, not in repo). Up/down wheel map: backups/Generic.kl.wheel-updown.
