@@ -30,6 +30,7 @@ public class Base extends Activity {
         loadTheme();
         if (guardOn) return;
         guardOn = true;
+        BtLog.start();
         final android.content.Context c = getApplicationContext();
         final Thread.UncaughtExceptionHandler old = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
